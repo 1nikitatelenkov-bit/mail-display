@@ -207,10 +207,10 @@
   <section class="screen" id="scr-settings">
     <div class="topbar"><div class="brand">Mail<span class="dot"> Display</span></div><div class="demoChip">DEMO</div></div>
     <div class="stitle">Settings</div>
-    <div class="setline"><b>Mail Display · build Nov 4 v1</b></div>
+    <div class="setline"><b>Mail Display · build Nov 4 v2</b></div>
     <div class="setline">Demo build — demo inbox, demo AI replies, no real accounts connected yet. The sign-in backend and live free-Gemini drafting arrive in phase 2.</div>
     <div class="setline">The app remembers your <b>last-used account</b> and which demo emails you have read or replied to, on this device only.</div>
-    <div class="setline muted">Back = middle-finger pinch. At the inbox, a middle pinch opens Meta's own menu.</div>
+    <div class="setline muted">Back = middle-finger pinch. At the inbox, a middle pinch opens Meta's own menu. Swipes work in all four directions: Left/Right move across a row, Up/Down jump between rows.</div>
     <div style="margin-top:auto"><button class="fz backbtn" id="btnSetBack">‹ Back</button></div>
   </section>
 
@@ -351,6 +351,39 @@ function createNavCore(maxDepth){
 }
 /* NAVCORE-END */
 
+/* GRIDCORE-BEGIN — pure (row, col) grid movement (no DOM), unit-tested in Node.
+   gridMove(rowLens, r, c, dir):
+   - Left/Right move WITHIN a row (wrapping inside that row). On a one-column
+     grid they fall back to previous/next row, as before.
+   - Up/Down jump to the row above/below (wrapping top<->bottom), keeping the
+     same column when that row has one, otherwise the nearest (last) column. */
+function gridMove(rowLens, r, c, dir){
+  var rows = rowLens.length;
+  if(!rows) return [r, c];
+  r = Math.max(0, Math.min(r, rows - 1));
+  c = Math.max(0, Math.min(c, rowLens[r] - 1));
+  var singleCol = true;
+  for(var i=0;i<rows;i++) if(rowLens[i] !== 1){ singleCol = false; break; }
+  if(dir === 'right'){
+    if(c < rowLens[r] - 1) return [r, c + 1];
+    if(singleCol) return [(r + 1) % rows, 0];
+    return [r, 0];
+  }
+  if(dir === 'left'){
+    if(c > 0) return [r, c - 1];
+    if(singleCol) return [(r - 1 + rows) % rows, 0];
+    return [r, rowLens[r] - 1];
+  }
+  if(dir === 'down' || dir === 'up'){
+    var r2 = dir === 'down' ? (r + 1) % rows : (r - 1 + rows) % rows;
+    return [r2, Math.min(c, rowLens[r2] - 1)];
+  }
+  return [r, c];
+}
+function gridFlat(rowLens, r, c){ var n = 0; for(var i=0;i<r;i++) n += rowLens[i]; return n + c; }
+function gridPos(rowLens, flat){ var r = 0; while(r < rowLens.length - 1 && flat >= rowLens[r]){ flat -= rowLens[r]; r++; } return [r, Math.min(flat, rowLens[r] - 1)]; }
+/* GRIDCORE-END */
+
 /* ================= navigation wiring (history = middle-finger pinch Back) =================
    The glasses shell gives the page no Back key: with a history entry present
    it calls history.back() (we see popstate); with none it opens Meta's
@@ -360,21 +393,58 @@ var histDepth = 0;
 var navSyncing = false;
 var lastPopAt = 0;
 var currentScreen = 'inbox';
-var cursorMap = {};   /* screenId -> highlighted focusable index */
+var cursorMap = {};   /* screenId -> highlighted grid position {r, c} */
 try{ history.replaceState({md:0}, ''); }catch(e){}
 
-function cursorOf(scr){ return cursorMap[scr] || 0; }
-function focusables(scr){
-  var el = $('scr-' + scr); if(!el) return [];
-  return Array.prototype.slice.call(el.querySelectorAll('.fz'));
+function cursorOf(scr){ return cursorMap[scr] || {r:0, c:0}; }
+/* Explicit (row, col) grid of focusables per screen, in visual order.
+   Left/Right move within a row; Up/Down jump between rows. */
+function screenGrid(scr){
+  function rows(sel){ return Array.prototype.slice.call(document.querySelectorAll(sel)); }
+  function one(el){ return el ? [el] : []; }
+  var g = [];
+  function push(row){ row = (row || []).filter(Boolean); if(row.length) g.push(row); }
+  if(scr === 'inbox'){
+    push(one($('acctHead')));
+    rows('#rows .erow').forEach(function(el){ push([el]); });
+    push([$('btnNew'), $('btnSettings')]);
+  } else if(scr === 'switcher'){
+    rows('#acctList .arow').forEach(function(el){ push([el]); });
+    push(one($('btnSwBack')));
+  } else if(scr === 'read'){
+    push([$('btnListen'), $('btnPager')]);
+    push([$('btnQuick'), $('btnWrite')]);
+    push(one($('btnReadBack')));
+  } else if(scr === 'quick'){
+    rows('#qList .chip').forEach(function(el){ push([el]); });
+    push(one($('btnQuickBack')));
+  } else if(scr === 'write'){
+    push(one($('wDir'))); push(one($('btnWDraft'))); push(one($('btnWBack')));
+  } else if(scr === 'compose'){
+    push(one($('cTo'))); push(one($('cSubj'))); push(one($('cDir'))); push(one($('btnCDraft'))); push(one($('btnCBack')));
+  } else if(scr === 'draft'){
+    push([$('btnDSend'), $('btnDRegen')]);
+    push(one($('btnDBack')));
+  } else if(scr === 'sent'){
+    push(one($('btnSentInbox')));
+  } else if(scr === 'settings'){
+    push(one($('btnSetBack')));
+  }
+  return g;
+}
+function clampPos(grid, pos){
+  var r = Math.max(0, Math.min((pos && typeof pos.r === 'number') ? pos.r : 0, grid.length - 1));
+  var c = Math.max(0, Math.min((pos && typeof pos.c === 'number') ? pos.c : 0, grid[r].length - 1));
+  return {r:r, c:c};
 }
 function applyHighlight(){
   document.querySelectorAll('.fz.hl').forEach(function(x){ x.classList.remove('hl'); });
-  var list = focusables(currentScreen); if(!list.length) return;
-  var i = Math.min(cursorOf(currentScreen), list.length - 1);
-  cursorMap[currentScreen] = i;
-  list[i].classList.add('hl');
-  if(currentScreen === 'inbox') syncInboxWindow(i);
+  var grid = screenGrid(currentScreen); if(!grid.length) return;
+  var pos = clampPos(grid, cursorOf(currentScreen));
+  cursorMap[currentScreen] = pos;
+  var el = grid[pos.r][pos.c];
+  el.classList.add('hl');
+  if(currentScreen === 'inbox') syncInboxWindow(el);
 }
 function showScreen(id){
   if(currentScreen === 'read' && id !== 'read') stopListen();
@@ -387,7 +457,7 @@ function openScreen(id, cursor){
   if(!nav.push(entry)) return false;
   try{ history.pushState({md:nav.depth()}, ''); }catch(e){}
   histDepth = nav.depth();
-  cursorMap[id] = cursor || 0;
+  cursorMap[id] = cursor || {r:0, c:0};
   showScreen(id);
   return true;
 }
@@ -395,7 +465,7 @@ function replaceScreen(id, cursor){
   var entry = { id:id, from:currentScreen, fromCursor:cursorOf(currentScreen) };
   if(!nav.replaceTop(entry)) return false;
   try{ history.replaceState({md:nav.depth()}, ''); }catch(e){}
-  cursorMap[id] = (typeof cursor === 'number') ? cursor : 0;
+  cursorMap[id] = cursor || {r:0, c:0};
   showScreen(id);
   return true;
 }
@@ -427,7 +497,7 @@ function requestBack(){
 function closeAllToRoot(){
   if(!nav.depth()){ showScreen('inbox'); return; }
   var d = histDepth;
-  nav.reset(); cursorMap['inbox'] = 0;
+  nav.reset(); cursorMap['inbox'] = {r:0, c:0};
   showScreen('inbox');
   if(d > 0){ navSyncing = true; try{ history.go(-d); }catch(e){ navSyncing = false; } }
   histDepth = 0;
@@ -435,13 +505,17 @@ function closeAllToRoot(){
 
 /* ================= inbox ================= */
 var ROW_H = 76, ROWS_VISIBLE = 5;
-function syncInboxWindow(cursorIdx){
-  var rows = $('rows'); if(!rows) return;
-  var firstRowCursor = 1; /* focusables: 0 = account header, 1..N = email rows */
-  var r = cursorIdx - firstRowCursor;
-  if(r < 0){ rows.style.transform = 'translateY(0px)'; return; }
-  var start = Math.max(0, Math.min(r - (ROWS_VISIBLE - 1), acct().emails.length - ROWS_VISIBLE));
-  rows.style.transform = 'translateY(' + (-start * ROW_H) + 'px)';
+function syncInboxWindow(focused){
+  var rowsEl = $('rows'); if(!rowsEl) return;
+  var total = acct().emails.length;
+  var start = 0;
+  if(focused && focused.classList && focused.classList.contains('erow')){
+    var idx = Array.prototype.indexOf.call(rowsEl.children, focused);
+    if(idx >= 0) start = Math.max(0, Math.min(idx - (ROWS_VISIBLE - 1), total - ROWS_VISIBLE));
+  } else if(focused && (focused.id === 'btnNew' || focused.id === 'btnSettings')){
+    start = Math.max(0, total - ROWS_VISIBLE);
+  }
+  rowsEl.style.transform = 'translateY(' + (-start * ROW_H) + 'px)';
 }
 function renderInbox(){
   var a = acct();
@@ -470,7 +544,7 @@ function openRead(id){
   state.emailId = id; state.bodyPage = 0;
   markRead(em);
   renderRead(); renderInbox();
-  openScreen('read', 2); /* land highlight on Quick reply */
+  openScreen('read', {r:1, c:0}); /* land highlight on Quick reply (grid row 1) */
 }
 
 /* ================= switcher ================= */
@@ -564,14 +638,14 @@ function sendDemo(msg, em, fromDraft){
   if(fromDraft && draftCtx && draftCtx.emailId){ var e2 = emailById(acct(), draftCtx.emailId); if(e2) markReplied(e2); }
   renderInbox();
   $('sentMsg').textContent = msg + ' Nothing really left your mailbox — this is a demo build.';
-  replaceScreen('sent', 0);
+  replaceScreen('sent', {r:0, c:0});
 }
 
 /* ================= wiring buttons ================= */
-$('acctHead').addEventListener('click', function(){ renderSwitcher(); openScreen('switcher', 0); });
+$('acctHead').addEventListener('click', function(){ renderSwitcher(); openScreen('switcher', {r:0, c:0}); });
 $('btnSwBack').addEventListener('click', requestBack);
-$('btnNew').addEventListener('click', function(){ openScreen('compose', 0); });
-$('btnSettings').addEventListener('click', function(){ openScreen('settings', 0); });
+$('btnNew').addEventListener('click', function(){ openScreen('compose', {r:0, c:0}); });
+$('btnSettings').addEventListener('click', function(){ openScreen('settings', {r:0, c:0}); });
 $('btnSetBack').addEventListener('click', requestBack);
 $('btnReadBack').addEventListener('click', requestBack);
 $('btnListen').addEventListener('click', toggleListen);
@@ -581,25 +655,25 @@ $('btnPager').addEventListener('click', function(){
   state.bodyPage = state.bodyPage < pages.length - 1 ? state.bodyPage + 1 : 0;
   renderRead(); applyHighlight();
 });
-$('btnQuick').addEventListener('click', function(){ renderQuick(); openScreen('quick', 0); });
+$('btnQuick').addEventListener('click', function(){ renderQuick(); openScreen('quick', {r:0, c:0}); });
 $('btnWrite').addEventListener('click', function(){
   var em = curEmail(); if(!em) return;
   draftCtx = { mode:'reply', emailId:em.id, toName:em.from.split(' ')[0], toLabel:em.from + ' <' + em.addr + '>', subj:'Re: ' + em.subj, direction:'', variant:0 };
   $('wCtx').textContent = 'Reply to ' + em.from + ' · Re: ' + em.subj;
   $('wDir').value = '';
-  openScreen('write', 0);
+  openScreen('write', {r:0, c:0});
 });
 $('btnWDraft').addEventListener('click', function(){
   if(!draftCtx) return;
   draftCtx.direction = $('wDir').value; draftCtx.variant = 0;
-  renderDraft(); openScreen('draft', 0);
+  renderDraft(); openScreen('draft', {r:0, c:0});
 });
 $('btnWBack').addEventListener('click', requestBack);
 $('btnCDraft').addEventListener('click', function(){
   var to = $('cTo').value.trim();
   draftCtx = { mode:'compose', emailId:null, toName:(to.split('@')[0] || 'there'), toLabel:to || '(no recipient)',
                subj:$('cSubj').value.trim(), direction:$('cDir').value, variant:0 };
-  renderDraft(); openScreen('draft', 0);
+  renderDraft(); openScreen('draft', {r:0, c:0});
 });
 $('btnCBack').addEventListener('click', requestBack);
 $('btnQuickBack').addEventListener('click', requestBack);
@@ -623,13 +697,23 @@ document.addEventListener('keydown', function(e){
     return;
   }
   if(isEditing()) return;
-  var list = focusables(currentScreen); if(!list.length) return;
-  var i = cursorOf(currentScreen);
-  if(e.key === 'ArrowDown' || e.key === 'ArrowRight'){ e.preventDefault(); cursorMap[currentScreen] = (i + 1) % list.length; applyHighlight(); }
-  else if(e.key === 'ArrowUp' || e.key === 'ArrowLeft'){ e.preventDefault(); cursorMap[currentScreen] = (i - 1 + list.length) % list.length; applyHighlight(); }
+  var grid = screenGrid(currentScreen); if(!grid.length) return;
+  var lens = grid.map(function(row){ return row.length; });
+  var pos = clampPos(grid, cursorOf(currentScreen));
+  var dir = null;
+  if(e.key === 'ArrowDown') dir = 'down';
+  else if(e.key === 'ArrowUp') dir = 'up';
+  else if(e.key === 'ArrowRight') dir = 'right';
+  else if(e.key === 'ArrowLeft') dir = 'left';
+  if(dir){
+    e.preventDefault();
+    var np = gridMove(lens, pos.r, pos.c, dir);
+    cursorMap[currentScreen] = {r:np[0], c:np[1]};
+    applyHighlight();
+  }
   else if(e.key === 'Enter'){
     e.preventDefault();
-    var el = list[Math.min(i, list.length - 1)];
+    var el = grid[pos.r][pos.c];
     if(el.tagName === 'TEXTAREA' || el.tagName === 'INPUT'){ el.focus(); return; } /* open composer / type */
     el.click();
   }
