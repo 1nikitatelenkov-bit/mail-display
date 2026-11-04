@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mail Display — Setup</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#060b14;color:#f2f7ff;
+       padding:22px 16px 48px}
+  .wrap{max-width:560px;margin:0 auto}
+  header{display:flex;align-items:center;gap:14px;margin-bottom:6px}
+  header img{width:56px;height:56px;border-radius:14px}
+  h1{font-size:28px}
+  .demo{display:inline-block;font-size:12px;font-weight:800;letter-spacing:1.5px;color:#0b1c33;background:#ffb340;
+        border-radius:999px;padding:3px 10px;vertical-align:middle;margin-left:8px}
+  .lead{color:#9db4d0;font-size:16px;line-height:1.5;margin-bottom:20px}
+  .card{background:#0b1626;border:1px solid #1d3a5f;border-radius:18px;padding:20px;margin-bottom:18px}
+  .step{font-size:13px;font-weight:800;letter-spacing:1.5px;color:#6ab0ff}
+  h2{font-size:21px;margin:6px 0 8px}
+  p{font-size:15.5px;line-height:1.55;color:#c9daf2}
+  .prov{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid #16283f}
+  .prov:last-of-type{border-bottom:none}
+  .pdot{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+        font-weight:800;color:#fff;font-size:18px;flex:0 0 auto}
+  .prov .nm{font-size:17px;font-weight:700}
+  .prov .ds{font-size:13.5px;color:#9db4d0}
+  button{font:inherit;cursor:pointer;border:none;border-radius:12px;padding:10px 18px;font-weight:700;font-size:15px;
+         background:#1663c7;color:#fff}
+  button.added{background:#14532d}
+  .prov button{margin-left:auto;flex:0 0 auto}
+  .note{background:#12283f;border-radius:12px;padding:12px 14px;font-size:14px;line-height:1.5;color:#c9daf2;margin-top:12px}
+  input[type=password],input[type=text]{width:100%;background:#060b14;border:2px solid #26486f;border-radius:12px;
+    color:#f2f7ff;font:inherit;padding:12px 14px;margin-top:10px;font-size:16px}
+  .row{display:flex;gap:10px;margin-top:12px}
+  .ok{color:#7ee2a8;font-size:14px;margin-top:8px;min-height:18px}
+  .code{font-size:40px;font-weight:800;letter-spacing:10px;text-align:center;background:#060b14;border-radius:14px;
+        padding:16px 0;margin-top:12px;color:#6ab0ff}
+  ol{margin:10px 0 0 20px;font-size:15.5px;line-height:1.6;color:#c9daf2}
+  a{color:#6ab0ff}
+  footer{color:#54708f;font-size:13.5px;text-align:center;margin-top:24px;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img src="icon-192.png" alt="Mail Display icon">
+    <h1>Mail Display<span class="demo">DEMO</span></h1>
+  </header>
+  <p class="lead">Set up Mail Display for your Meta Ray-Ban Display glasses in three steps.
+     This is the phase-1 demo build: nothing here connects to a real account yet — the sign-in backend arrives in phase 2.</p>
+
+  <div class="card">
+    <div class="step">STEP 1</div>
+    <h2>Add your email accounts</h2>
+    <p>In the finished app you will sign in to each account here on your phone, once.
+       Your mail stays separate per account — the glasses show one account at a time, with a switcher like the Gmail app.</p>
+    <div id="providers"></div>
+    <div class="note"><b>Demo state only:</b> “Add” below just adds a demo row on this phone so you can see the flow.
+      No sign-in page opens and no real connection is made — real OAuth sign-in arrives with the phase-2 backend.</div>
+    <div id="addedList"></div>
+  </div>
+
+  <div class="card">
+    <div class="step">STEP 2</div>
+    <h2>Your free Gemini key</h2>
+    <p>Mail Display uses <b>only the free Gemini API</b> — no paid AI. Get your own free key:
+       open <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Google AI Studio</a>,
+       sign in with any Google account, and tap <b>“Create API key”</b>. Then paste it here.</p>
+    <input type="password" id="gemKey" placeholder="Paste your free Gemini API key" autocomplete="off">
+    <div class="row"><button id="btnSaveKey">Save key</button></div>
+    <div class="ok" id="keyMsg"></div>
+    <div class="note"><b>Demo note:</b> in this build the key is stored <b>only in this browser, on this phone</b> (localStorage) and is never sent anywhere.
+      In phase 2 it will be stored <b>encrypted on the backend</b> instead. One honest heads-up: on Google’s free tier,
+      what the AI sees may be used by Google to improve its products — that is the trade-off of free.</div>
+  </div>
+
+  <div class="card">
+    <div class="step">STEP 3</div>
+    <h2>Pair your glasses</h2>
+    <p>On your phone, open the <b>Meta AI</b> app and add the glasses app:</p>
+    <ol>
+      <li>Turn on Developer Mode (Settings → About — tap the version 5 times) if you have not already.</li>
+      <li>Go to <b>App connections → Web Apps → Connect Web App</b>.</li>
+      <li>Enter the Mail Display app address your developer gave you, and this pairing code:</li>
+    </ol>
+    <div class="code" id="pairCode">------</div>
+    <div class="note"><b>Demo code:</b> in phase 1 this code is only a placeholder so you can rehearse the steps —
+      it does not pair anything yet. Real pairing arrives with the phase-2 backend.</div>
+  </div>
+
+  <footer>Mail Display · build Nov 4 v1 · Demo build — demo data only, no real mail, no real AI calls.<br>
+  Accounts are never mixed into one inbox.</footer>
+</div>
+<script>
+'use strict';
+var PROVIDERS = [
+  { id:'gmail',   name:'Gmail',        color:'#ea4335', desc:'Google account — Gmail API sign-in in phase 2' },
+  { id:'outlook', name:'Outlook',      color:'#2f7de1', desc:'Microsoft account — Microsoft Graph sign-in in phase 2' },
+  { id:'yahoo',   name:'Yahoo Mail',   color:'#6001d2', desc:'Yahoo account — IMAP sign-in in phase 2' },
+  { id:'icloud',  name:'iCloud Mail',  color:'#555555', desc:'Apple account — IMAP sign-in in phase 2' },
+  { id:'imap',    name:'Other (IMAP)', color:'#0f766e', desc:'Any other mailbox that supports IMAP, in phase 2' }
+];
+var LS_PROV = 'maildisplay.setup.providers', LS_KEY = 'maildisplay.setup.geminiKey';
+var added = [];
+try{ added = JSON.parse(localStorage.getItem(LS_PROV) || '[]'); }catch(e){ added = []; }
+
+function renderProviders(){
+  var box = document.getElementById('providers'); box.innerHTML = '';
+  PROVIDERS.forEach(function(p){
+    var row = document.createElement('div'); row.className = 'prov';
+    var isIn = added.indexOf(p.id) >= 0;
+    row.innerHTML = '<span class="pdot" style="background:' + p.color + '">' + p.name.charAt(0) + '</span>' +
+      '<span><span class="nm"></span><br><span class="ds"></span></span>';
+    row.querySelector('.nm').textContent = p.name;
+    row.querySelector('.ds').textContent = p.desc;
+    var b = document.createElement('button');
+    b.textContent = isIn ? 'Added (demo)' : 'Add';
+    if(isIn) b.className = 'added';
+    b.addEventListener('click', function(){
+      var i = added.indexOf(p.id);
+      if(i >= 0) added.splice(i, 1); else added.push(p.id);
+      try{ localStorage.setItem(LS_PROV, JSON.stringify(added)); }catch(e){}
+      renderProviders();
+    });
+    row.appendChild(b);
+    box.appendChild(row);
+  });
+  var list = document.getElementById('addedList');
+  if(added.length){
+    list.innerHTML = '<div class="note">Demo accounts on this phone: <b>' +
+      added.map(function(id){ for(var i=0;i<PROVIDERS.length;i++) if(PROVIDERS[i].id===id) return PROVIDERS[i].name; return id; }).join(', ') +
+      '</b> — demo rows only, no real sign-in has happened.</div>';
+  } else list.innerHTML = '';
+}
+renderProviders();
+
+var savedKey = '';
+try{ savedKey = localStorage.getItem(LS_KEY) || ''; }catch(e){}
+if(savedKey){ document.getElementById('gemKey').value = savedKey; document.getElementById('keyMsg').textContent = 'A key is saved on this phone (demo storage).'; }
+document.getElementById('btnSaveKey').addEventListener('click', function(){
+  var v = document.getElementById('gemKey').value.trim();
+  try{ localStorage.setItem(LS_KEY, v); }catch(e){}
+  document.getElementById('keyMsg').textContent = v ? 'Saved on this phone only (demo storage). In phase 2 it moves to encrypted backend storage.' : 'Cleared.';
+});
+
+/* demo pairing code: derived from the date so it looks stable within a day; pairs nothing */
+(function(){
+  var d = new Date(); var n = (d.getFullYear() * 372 + (d.getMonth()+1) * 31 + d.getDate()) * 7919 % 900000 + 100000;
+  document.getElementById('pairCode').textContent = String(n);
+})();
+</script>
+</body>
+</html>

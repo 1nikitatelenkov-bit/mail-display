@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=600, height=600, initial-scale=1">
+<meta name="mrbd-web-app-capable" content="yes">
+<title>Mail Display — email for Meta Display glasses</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{background:#111;height:100%}
+  body{font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:#f2f7ff;
+       display:flex;align-items:center;justify-content:center;min-height:100vh}
+  #app{position:relative;width:600px;height:600px;background:#000;overflow:hidden;flex:0 0 auto}
+  .screen{position:absolute;inset:0;display:none;flex-direction:column;padding:18px 22px}
+  .screen.active{display:flex}
+  /* top bar on every screen */
+  .topbar{display:flex;align-items:center;justify-content:space-between;height:34px;margin-bottom:10px}
+  .brand{font-size:20px;font-weight:700;letter-spacing:.4px;color:#cfe4ff}
+  .brand .dot{color:#6ab0ff}
+  .demoChip{font-size:14px;font-weight:800;letter-spacing:1.5px;color:#0b1c33;background:#ffb340;
+            border-radius:999px;padding:4px 12px}
+  .stitle{font-size:24px;font-weight:800;margin:2px 0 10px}
+  .muted{color:#9db4d0}
+  .fz{border:3px solid transparent;border-radius:14px;cursor:pointer}
+  .fz.hl{border-color:#6ab0ff;background:#12283f}
+  button.fz{font:inherit;color:inherit;background:#101f38;text-align:left}
+  .bigbtn{display:block;width:100%;padding:13px 16px;font-size:20px;font-weight:700;margin-top:10px}
+  .bigbtn.primary{background:#1663c7}
+  .bigbtn.primary.hl{background:#1d74e8}
+  .backbtn{display:block;width:100%;padding:11px 16px;font-size:18px;font-weight:600;margin-top:10px;color:#cfe4ff}
+  /* inbox */
+  #acctHead{display:flex;align-items:center;gap:14px;padding:10px 12px;background:#0b1626;width:100%}
+  .avatar{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+          font-size:24px;font-weight:800;color:#fff;flex:0 0 auto}
+  #acctHead .who{min-width:0}
+  #acctHead .addr{font-size:21px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #acctHead .sub{font-size:16px;color:#9db4d0}
+  #acctHead .chev{margin-left:auto;font-size:26px;color:#6ab0ff;flex:0 0 auto}
+  #rowsWrap{height:372px;overflow:hidden;margin-top:8px}
+  #rows{transition:transform .15s ease}
+  .erow{display:flex;gap:12px;padding:8px 12px;height:76px;width:100%;background:transparent;text-align:left}
+  .erow .main{flex:1;min-width:0}
+  .erow .from{font-size:20px;font-weight:700;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .erow.unread .from{color:#fff}
+  .erow .subj{font-size:18px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#d7e6fa}
+  .erow .snip{font-size:16px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#8fa8c8}
+  .erow .meta{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:0 0 auto}
+  .erow .time{font-size:15px;color:#9db4d0}
+  .udot{width:13px;height:13px;border-radius:50%;background:#4da3ff}
+  .udot.off{background:transparent}
+  .repliedTag{font-size:13px;color:#7ee2a8;font-weight:700}
+  .bottombar{display:flex;gap:12px;margin-top:auto}
+  .bottombar .bigbtn{margin-top:0;flex:1;text-align:center}
+  /* switcher */
+  .arow{display:flex;align-items:center;gap:14px;padding:14px 12px;width:100%;background:transparent;text-align:left;margin-bottom:6px}
+  .arow .addr{font-size:21px;font-weight:700}
+  .arow .prov{font-size:16px;color:#9db4d0}
+  .arow .cnt{margin-left:auto;font-size:17px;font-weight:800;background:#1663c7;border-radius:999px;padding:3px 12px;flex:0 0 auto}
+  .arow .cur{font-size:15px;color:#7ee2a8;font-weight:700}
+  .note{font-size:16px;color:#9db4d0;line-height:1.45;margin-top:12px}
+  .note b{color:#d7e6fa}
+  /* read */
+  #rdFrom{font-size:22px;font-weight:800}
+  #rdMeta{font-size:16px;color:#9db4d0;margin-top:2px}
+  #rdSubj{font-size:24px;font-weight:800;line-height:1.25;margin-top:8px}
+  .aibox{background:#0d2138;border:2px solid #2f7de1;border-radius:14px;padding:10px 14px;margin-top:12px}
+  .aibox .lab{font-size:14px;font-weight:800;letter-spacing:1px;color:#6ab0ff}
+  .aibox .txt{font-size:18px;line-height:1.35;margin-top:3px}
+  #rdBody{font-size:19px;line-height:1.45;margin-top:14px;white-space:pre-wrap}
+  #rdPageInfo{font-size:15px;color:#9db4d0;margin-top:8px}
+  .actions{margin-top:auto}
+  .actions .row2{display:flex;gap:12px}
+  .actions .row2 .bigbtn{flex:1;text-align:center}
+  /* quick replies */
+  .chip{display:block;width:100%;padding:16px;font-size:20px;font-weight:600;background:#101f38;margin-bottom:12px;line-height:1.35}
+  /* write / compose / draft */
+  textarea,input[type=text]{width:100%;background:#0b1626;color:#f2f7ff;border-radius:12px;
+    border:3px solid #26486f;font:inherit;padding:12px 14px}
+  textarea{height:150px;font-size:19px;line-height:1.4;resize:none}
+  input[type=text]{font-size:19px;margin-bottom:10px}
+  textarea.hl,input[type=text].hl{border-color:#6ab0ff;background:#12283f}
+  .flabel{font-size:16px;font-weight:700;color:#9db4d0;margin:8px 0 6px}
+  #dBody{font-size:19px;line-height:1.5;white-space:pre-wrap;background:#0b1626;border-radius:14px;
+         padding:16px;flex:1;overflow:hidden}
+  #sentWrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px}
+  #sentWrap .big{font-size:30px;font-weight:800}
+  #sentWrap .check{width:92px;height:92px;border-radius:50%;background:#14532d;display:flex;align-items:center;justify-content:center;font-size:52px}
+  .setline{font-size:18px;line-height:1.5;margin-top:10px}
+  #hint{position:absolute;left:0;right:0;bottom:2px;text-align:center;font-size:13px;color:#54708f}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- INBOX (root) -->
+  <section class="screen" id="scr-inbox">
+    <div class="topbar"><div class="brand">Mail<span class="dot"> Display</span></div><div class="demoChip">DEMO</div></div>
+    <button class="fz" id="acctHead">
+      <span class="avatar" id="acctAvatar">S</span>
+      <span class="who"><span class="addr" id="acctAddr">—</span><br><span class="sub" id="acctSub">—</span></span>
+      <span class="chev">▾</span>
+    </button>
+    <div id="rowsWrap"><div id="rows"></div></div>
+    <div class="bottombar">
+      <button class="fz bigbtn primary" id="btnNew">＋ New email</button>
+      <button class="fz bigbtn" id="btnSettings">Settings</button>
+    </div>
+  </section>
+
+  <!-- ACCOUNT SWITCHER -->
+  <section class="screen" id="scr-switcher">
+    <div class="topbar"><div class="brand">Mail<span class="dot"> Display</span></div><div class="demoChip">DEMO</div></div>
+    <div class="stitle">Switch account</div>
+    <div id="acctList"></div>
+    <div class="note"><b>Manage accounts on your phone</b> — add or remove accounts in the companion setup page (<b>setup.html</b>). Accounts are never mixed: you only ever see one account's mail at a time.</div>
+    <div style="margin-top:auto"><button class="fz backbtn" id="btnSwBack">‹ Back</button></div>
+  </section>
+
+  <!-- READ -->
+  <section class="screen" id="scr-read">
+    <div class="topbar"><div class="brand">Mail<span class="dot"> Display</span></div><div class="demoChip">DEMO</div></div>
+    <div id="rdFrom">—</div>
+    <div id="rdMeta">—</div>
+    <div id="rdSubj">—</div>
+    <div class="aibox"><div class="lab">AI SUMMARY · DEMO</div><div class="txt" id="rdSummary">—</div></div>
+    <div id="rdBody">—</div>
+    <div id="rdPageInfo"></div>
+    <div class="actions">
+      <div class="row2">
+        <button class="fz bigbtn" id="btnListen">🔊 Listen</button>
+        <button class="fz bigbtn" id="btnPager">Next part ›</button>
+      </div>
+      <div class="row2">
+        <button class="fz bigbtn primary" id="btnQuick">Quick reply</button>
+        <button class="fz bigbtn primary" id="btnWrite">Write with AI</button>
+      </div>
+      <button class="fz backbtn" id="btnReadBack">‹ Back</button>
+    </div>
+  </section>
+
+  <!-- QUICK REPLIES -->
+  <section class="screen" id="scr-quick">
+    <div class="topbar"><div class="brand">Mail<span class="dot"> Display</span></div><div class="demoChip">DEMO</div></div>
+    <div class="stitle">Quick reply</div>
+    <div class="note" style="margin:0 0 14px">Demo AI suggestions — pinch one to send it. In phase 2 these come from the free Gemini API.</div>
+    <div id="qList"></div>
+    <div style="margin-top:auto"><button class="fz backbtn" id="btnQuickBack">‹ Back</button></div>
+  </section>
+
+  <!-- WRITE WITH AI -->
+  <section class="screen" id="scr-write">
+    <div class="topbar"><div class="brand">Mail<span class="dot"> Display</span></div><div class="demoChip">DEMO</div></div>
+    <div class="stitle">Write with AI</div>
+    <div class="note" id="wCtx" style="margin:0 0 6px">—</div>
+    <div class="flabel">Your direction — pinch the box and dictate or write it</div>
+    <textarea class="fz" id="wDir" placeholder="e.g. Say no politely, but propose Tuesday morning"></textarea>
+    <button class="fz bigbtn primary" id="btnWDraft">Draft it</button>
+    <div style="margin-top:auto"><button class="fz backbtn" id="btnWBack">‹ Back</button></div>
+  </section>
+
+  <!-- COMPOSE -->
+  <section class="screen" id="scr-compose">
+    <div class="topbar"><div class="brand">Mail<span class="dot"> Display</span></div><div class="demoChip">DEMO</div></div>
+    <div class="stitle">New email</div>
+    <div class="flabel">To</div>
+    <input type="text" class="fz" id="cTo" placeholder="name@example.com">
+    <div class="flabel">Subject</div>
+    <input type="text" class="fz" id="cSubj" placeholder="Subject">
+    <div class="flabel">Your direction for the AI</div>
+    <textarea class="fz" id="cDir" style="height:104px" placeholder="e.g. Invite her to the studio tour on Friday"></textarea>
+    <button class="fz bigbtn primary" id="btnCDraft">Draft it</button>
+    <div style="margin-top:auto"><button class="fz backbtn" id="btnCBack">‹ Back</button></div>
+  </section>
+
+  <!-- DRAFT PREVIEW -->
+  <section class="screen" id="scr-draft">
+    <div class="topbar"><div class="brand">Mail<span class="dot"> Display</span></div><div class="demoChip">DEMO</div></div>
+    <div class="stitle">AI draft · Demo</div>
+    <div class="note" id="dMeta" style="margin:0 0 10px">—</div>
+    <div id="dBody">—</div>
+    <div class="actions">
+      <div class="row2">
+        <button class="fz bigbtn primary" id="btnDSend">Send (demo)</button>
+        <button class="fz bigbtn" id="btnDRegen">Regenerate</button>
+      </div>
+      <button class="fz backbtn" id="btnDBack">‹ Back</button>
+    </div>
+  </section>
+
+  <!-- SENT -->
+  <section class="screen" id="scr-sent">
+    <div class="topbar"><div class="brand">Mail<span class="dot"> Display</span></div><div class="demoChip">DEMO</div></div>
+    <div id="sentWrap">
+      <div class="check">✓</div>
+      <div class="big">Sent (demo)</div>
+      <div class="note" id="sentMsg" style="text-align:center">Nothing really left your mailbox — this is a demo build.</div>
+    </div>
+    <button class="fz bigbtn primary" id="btnSentInbox">Back to inbox</button>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="screen" id="scr-settings">
+    <div class="topbar"><div class="brand">Mail<span class="dot"> Display</span></div><div class="demoChip">DEMO</div></div>
+    <div class="stitle">Settings</div>
+    <div class="setline"><b>Mail Display · build Nov 4 v1</b></div>
+    <div class="setline">Demo build — demo inbox, demo AI replies, no real accounts connected yet. The sign-in backend and live free-Gemini drafting arrive in phase 2.</div>
+    <div class="setline">The app remembers your <b>last-used account</b> and which demo emails you have read or replied to, on this device only.</div>
+    <div class="setline muted">Back = middle-finger pinch. At the inbox, a middle pinch opens Meta's own menu.</div>
+    <div style="margin-top:auto"><button class="fz backbtn" id="btnSetBack">‹ Back</button></div>
+  </section>
+
+  <div id="hint">Swipes move · Pinch selects · Middle pinch = Back</div>
+</div>
+<script>
+'use strict';
+/* ================= demo data (all people & companies are fictional) ================= */
+var ACCOUNTS = [
+ { id:'gmail', provider:'Gmail', address:'sam.parker@gmail.com', color:'#ea4335', emails:[
+  { id:'g1', from:'Lena Ortiz', addr:'lena@northbeamstudio.example', subj:'Revised designs for the landing page', time:'9:41 AM', unread:true,
+    snip:'I uploaded v3 of the hero section and tightened the…',
+    body:['Hi Sam,','I uploaded v3 of the hero section and tightened the spacing around the headline. The client asked for a warmer palette, so I swapped the blue for amber and it reads much better.','Can you review it before Thursday? If it looks good on your end I will hand it to the developer the same day.'],
+    summary:'Lena sent v3 of the landing-page hero and needs your review before Thursday.',
+    quick:['Looks great — go ahead and hand it to the developer.','I will review it tonight and send notes.','Can we push the review to Friday morning?'] },
+  { id:'g2', from:'Brightpath School', addr:'office@brightpathschool.example', subj:'Parent evening — new date', time:'8:15 AM', unread:true,
+    snip:'Because of the gym repairs we are moving parent evening…',
+    body:['Dear parents,','Because of the gym repairs we are moving parent evening from November 12 to November 19. The start time stays 6:30 PM and each meeting slot keeps its original order.','Please reply to this email if the new date does not work for your family and we will find an alternative.'],
+    summary:'Parent evening moved from Nov 12 to Nov 19, same time — reply only if it clashes.',
+    quick:['The new date works for us, thank you.','November 19 does not work — can we find another day?','Thanks for letting us know.'] },
+  { id:'g3', from:'Tomas Reed', addr:'tomas@cedarandco.example', subj:'Invoice #1042 for October work', time:'Yesterday', unread:true,
+    snip:'Attaching the invoice for the October branding work…',
+    body:['Hi Sam,','Attaching invoice #1042 for the October branding work — total is the amount we agreed, no changes from the estimate.','Payment terms are 14 days as usual. Thanks again for the project, the team really enjoyed it.'],
+    summary:'Tomas sent invoice #1042 for October branding work, 14-day terms, amount as agreed.',
+    quick:['Received — I will process it this week.','Thanks, could you resend it as a PDF?','I have a question about one line item — calling you tomorrow.'] },
+  { id:'g4', from:'Helio Fitness', addr:'hello@heliofitness.example', subj:'Your trial week starts Monday', time:'Yesterday', unread:false,
+    snip:'Everything is set for your trial week. Your first session…',
+    body:['Hi Sam,','Everything is set for your trial week at Helio Fitness. Your first session is booked for Monday at 7 AM with coach Dana.','Just bring workout clothes and a water bottle — towels and lockers are on us.'],
+    summary:'Your Helio Fitness trial week starts Monday, first session 7 AM with coach Dana.',
+    quick:['Perfect, see you Monday at 7.','Can I move the first session to Tuesday?','Thanks — what should I bring?'] },
+  { id:'g5', from:'Maple Airlines', addr:'trips@mapleairlines.example', subj:'Check-in is open for flight MA 214', time:'Mon', unread:false,
+    snip:'Your flight to Denver departs Friday at 10:25 AM…',
+    body:['Dear Sam Parker,','Check-in is now open for flight MA 214 to Denver, departing Friday at 10:25 AM from gate area B. Your seat is 14A.','Boarding closes 30 minutes before departure. We look forward to flying with you.'],
+    summary:'Check-in is open for Friday flight MA 214 to Denver, seat 14A.',
+    quick:['Thanks, I have checked in.','Can I change my seat to an aisle?','Please add one checked bag.'] },
+  { id:'g6', from:'Priya Nair', addr:'priya@northbeamstudio.example', subj:'Photos from the team offsite', time:'Sun', unread:false,
+    snip:'Finally sorted the offsite photos — the lake ones came…',
+    body:['Hi Sam,','Finally sorted the offsite photos — the lake ones came out beautifully. I put the full album in the shared folder and marked my favourites.','Feel free to use any of them for the studio page.'],
+    summary:'Priya shared the team offsite photo album and marked her favourites.',
+    quick:['These are great — thanks for sorting them!','Love the lake shots, using two on the studio page.','Could you send the full-size originals?'] }
+ ]},
+ { id:'outlook', provider:'Outlook', address:'sam.parker@outlook.com', color:'#2f7de1', emails:[
+  { id:'o1', from:'Grant Holloway', addr:'grant@summitlegal.example', subj:'Contract draft — signature pages', time:'10:02 AM', unread:true,
+    snip:'The draft is ready. Please look at clause 6 and the…',
+    body:['Hi Sam,','The contract draft is ready for your review. Please look in particular at clause 6 and the signature pages at the end — those are the only parts that changed since the version you saw.','If you are happy, I can prepare the final for signing early next week.'],
+    summary:'Contract draft is ready; clause 6 and the signature pages are the changed parts to review.',
+    quick:['I reviewed it — happy to proceed to the final.','Clause 6 needs one change — I will send notes.','Can we talk through clause 6 on a quick call?'] },
+  { id:'o2', from:'Westfield Clinic', addr:'appointments@westfieldclinic.example', subj:'Reminder: check-up on Nov 8 at 11:20', time:'7:48 AM', unread:true,
+    snip:'This is a reminder of your appointment on Saturday…',
+    body:['Hello,','This is a reminder of your check-up appointment on Saturday, November 8 at 11:20 AM with Dr. Ellis.','Please arrive 10 minutes early and bring your insurance card. Reply to this message if you need to reschedule.'],
+    summary:'Reminder: clinic check-up Saturday Nov 8 at 11:20 with Dr. Ellis.',
+    quick:['Confirming — I will be there.','I need to reschedule, please.','Thanks for the reminder.'] },
+  { id:'o3', from:'Nora Fitzgerald', addr:'nora@harborbooks.example', subj:'Book club pick for December', time:'Yesterday', unread:false,
+    snip:'The votes are in — December pick is The Salt Road…',
+    body:['Hi everyone,','The votes are in — our December pick is The Salt Road. It is a warm one, perfect for the season.','We meet at Harbor Books on December 10 at 7 PM. Nora is bringing the questions this time.'],
+    summary:'December book club pick is The Salt Road; meeting Dec 10, 7 PM at Harbor Books.',
+    quick:['Great pick — see you on Dec 10.','Already read it and loved it.','I may be late that evening, save me a seat!'] },
+  { id:'o4', from:'Cedar & Co.', addr:'orders@cedarandco.example', subj:'Your order #881 has shipped', time:'Yesterday', unread:false,
+    snip:'Good news — your walnut desk organizer is on its way…',
+    body:['Hi Sam,','Good news — your order #881, the walnut desk organizer, has shipped.','Delivery is expected on Thursday. You can follow the parcel from the link in this email.'],
+    summary:'Order #881 (walnut desk organizer) shipped, delivery expected Thursday.',
+    quick:['Thanks for the update.','The tracking link is not working for me.','Perfect timing — thank you!'] },
+  { id:'o5', from:'Marcus Bell', addr:'marcus@summitlegal.example', subj:'Lunch next week?', time:'Tue', unread:false,
+    snip:'It has been too long — are you free for lunch on…',
+    body:['Hi Sam,','It has been too long — are you free for lunch one day next week? There is a new place near the office I have been wanting to try.','Tuesday or Wednesday would suit me best, but I can flex.'],
+    summary:'Marcus suggests lunch next week, Tuesday or Wednesday work best for him.',
+    quick:['Tuesday works — name the place!','Wednesday is better for me.','This week is packed — the week after?'] },
+  { id:'o6', from:'Summit Legal', addr:'news@summitlegal.example', subj:'Office closed on Nov 11', time:'Mon', unread:false,
+    snip:'Our office will be closed on Tuesday, November 11…',
+    body:['Hello,','A quick note that our office will be closed on Tuesday, November 11 for the public holiday.','We reopen on Wednesday at 9 AM. Urgent matters can go to the duty phone as usual.'],
+    summary:'Summit Legal office is closed Tuesday Nov 11, reopens Wednesday 9 AM.',
+    quick:['Noted, thank you.','Thanks for the heads-up.','Understood — talk Wednesday.'] }
+ ]},
+ { id:'yahoo', provider:'Yahoo', address:'sam_parker@yahoo.com', color:'#6001d2', emails:[
+  { id:'y1', from:'Aunt Rosa', addr:'rosa.m@family.example', subj:'Sunday dinner at ours', time:'9:12 AM', unread:true,
+    snip:'We are doing a small dinner this Sunday at 5 — bring…',
+    body:['Dear Sam,','We are doing a small dinner this Sunday at 5 — just family. I am making the soup you like.','Bring the kids hungry and do not worry about bringing anything. If you can come a bit early, even better.'],
+    summary:'Aunt Rosa invites you to family dinner Sunday at 5 PM at hers.',
+    quick:['We would love to — see you Sunday at 5!','We can come, but we will be a little late.','Sorry, we cannot make it this Sunday.'] },
+  { id:'y2', from:'Greenfield Market', addr:'weekly@greenfieldmarket.example', subj:'This week: apples, honey and fresh bread', time:'Yesterday', unread:true,
+    snip:'The autumn list is here — orchard apples are back…',
+    body:['Hello neighbours,','The autumn list is here — orchard apples are back, plus the first jars of this year\u2019s honey and fresh bread every morning from 8.','Saturday market runs 9 to 2 as usual. See you there.'],
+    summary:'Greenfield Market\u2019s autumn list: apples, new honey, fresh bread; Saturday market 9–2.',
+    quick:['Thanks — see you Saturday.','Please set aside two jars of honey for me.','Unsubscribe me from the weekly list, please.'] },
+  { id:'y3', from:'Diego Fuentes', addr:'diego@trailclub.example', subj:'Saturday hike — Bear Ridge trail', time:'Yesterday', unread:false,
+    snip:'The club is hiking Bear Ridge on Saturday. Meet at…',
+    body:['Hi Sam,','The trail club is hiking Bear Ridge on Saturday. We meet at the north parking lot at 8 AM sharp.','The loop is about 9 km with a lunch stop at the top. Bring water and a layer — it gets windy on the ridge.'],
+    summary:'Trail club hikes Bear Ridge Saturday, meet 8 AM at the north lot, 9 km loop.',
+    quick:['Count me in — see you at 8.','Can I bring a friend along?','Skipping this one, have fun!'] },
+  { id:'y4', from:'Lakeside Library', addr:'desk@lakesidelibrary.example', subj:'Your reserved book is ready', time:'Tue', unread:false,
+    snip:'The book you reserved is waiting at the front desk…',
+    body:['Hi Sam,','Good news — the book you reserved, \u201cThe Clockmaker\u2019s Garden\u201d, is ready for pickup at the front desk.','We will hold it until next Tuesday.'],
+    summary:'Your reserved book is ready at Lakeside Library, held until next Tuesday.',
+    quick:['Thanks — I will pick it up this week.','Please hold it until Friday for me.','I no longer need it, thanks anyway.'] },
+  { id:'y5', from:'Fern Bakery', addr:'hi@fernbakery.example', subj:'Your bread subscription renews Friday', time:'Mon', unread:false,
+    snip:'Just a note that your weekly bread subscription…',
+    body:['Hi Sam,','Just a note that your weekly bread subscription renews on Friday. Same loaf as usual unless you tell us otherwise.','Reply any time to pause a week or swap your loaf.'],
+    summary:'Bread subscription renews Friday, same loaf unless you change it.',
+    quick:['Same loaf is perfect, thanks.','Please pause next week.','Swap me to the seeded loaf this time.'] },
+  { id:'y6', from:'Owen Hart', addr:'owen@trailclub.example', subj:'Spare ticket for Saturday\u2019s game', time:'Sun', unread:false,
+    snip:'I have a spare ticket for Saturday\u2019s game if you…',
+    body:['Hi Sam,','I have a spare ticket for Saturday\u2019s game — our row, good seats. Yours if you want it.','Let me know by Thursday so I can pass it on if you cannot make it.'],
+    summary:'Owen has a spare ticket for Saturday\u2019s game; answer by Thursday.',
+    quick:['Yes please — I would love it!','Thanks, but I cannot make Saturday.','Let me check and confirm by Wednesday.'] }
+ ]}
+];
+var USER_NAME = 'Sam Parker';
+var USER_FIRST = 'Sam';
+
+/* ================= persisted demo state ================= */
+var LS_KEY = 'maildisplay.v1';
+var store = { acct:'gmail', flags:{} };
+try{ var raw = localStorage.getItem(LS_KEY); if(raw){ var p = JSON.parse(raw); if(p && p.acct) store = p; } }catch(e){}
+function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(store)); }catch(e){} }
+function acct(){ for(var i=0;i<ACCOUNTS.length;i++) if(ACCOUNTS[i].id===store.acct) return ACCOUNTS[i]; return ACCOUNTS[0]; }
+function emailById(a, id){ for(var i=0;i<a.emails.length;i++) if(a.emails[i].id===id) return a.emails[i]; return null; }
+function isUnread(a, em){ var f = store.flags[em.id]; return em.unread && !(f && f.r); }
+function isReplied(em){ var f = store.flags[em.id]; return !!(f && f.rp); }
+function unreadCount(a){ return a.emails.filter(function(em){ return isUnread(a, em); }).length; }
+function markRead(em){ var f = store.flags[em.id] || (store.flags[em.id] = {}); f.r = 1; save(); }
+function markReplied(em){ var f = store.flags[em.id] || (store.flags[em.id] = {}); f.r = 1; f.rp = 1; save(); }
+function $(id){ return document.getElementById(id); }
+
+/* NAVCORE-BEGIN — pure navigation state machine (no DOM/history), unit-tested in Node.
+   stack entries: {id, from, fromCursor}. Depth is capped so the glasses
+   history stack stays <= 3 of the host's 5-entry cap. */
+function createNavCore(maxDepth){
+  var stack = [];
+  return {
+    stack: stack,
+    depth: function(){ return stack.length; },
+    top: function(){ return stack.length ? stack[stack.length-1] : null; },
+    push: function(entry){ if(stack.length >= maxDepth) return false; stack.push(entry); return true; },
+    replaceTop: function(entry){ if(!stack.length) return false; entry.from = stack[stack.length-1].from; entry.fromCursor = stack[stack.length-1].fromCursor; stack[stack.length-1] = entry; return true; },
+    popTo: function(depth){ var popped = []; while(stack.length > depth) popped.push(stack.pop()); return popped; },
+    reset: function(){ stack.length = 0; }
+  };
+}
+/* NAVCORE-END */
+
+/* ================= navigation wiring (history = middle-finger pinch Back) =================
+   The glasses shell gives the page no Back key: with a history entry present
+   it calls history.back() (we see popstate); with none it opens Meta's
+   native universal menu. Root (Inbox) owns NO entry and is never trapped. */
+var nav = createNavCore(3);
+var histDepth = 0;
+var navSyncing = false;
+var lastPopAt = 0;
+var currentScreen = 'inbox';
+var cursorMap = {};   /* screenId -> highlighted focusable index */
+try{ history.replaceState({md:0}, ''); }catch(e){}
+
+function cursorOf(scr){ return cursorMap[scr] || 0; }
+function focusables(scr){
+  var el = $('scr-' + scr); if(!el) return [];
+  return Array.prototype.slice.call(el.querySelectorAll('.fz'));
+}
+function applyHighlight(){
+  document.querySelectorAll('.fz.hl').forEach(function(x){ x.classList.remove('hl'); });
+  var list = focusables(currentScreen); if(!list.length) return;
+  var i = Math.min(cursorOf(currentScreen), list.length - 1);
+  cursorMap[currentScreen] = i;
+  list[i].classList.add('hl');
+  if(currentScreen === 'inbox') syncInboxWindow(i);
+}
+function showScreen(id){
+  if(currentScreen === 'read' && id !== 'read') stopListen();
+  currentScreen = id;
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.toggle('active', s.id === 'scr-' + id); });
+  applyHighlight();
+}
+function openScreen(id, cursor){
+  var entry = { id:id, from:currentScreen, fromCursor:cursorOf(currentScreen) };
+  if(!nav.push(entry)) return false;
+  try{ history.pushState({md:nav.depth()}, ''); }catch(e){}
+  histDepth = nav.depth();
+  cursorMap[id] = cursor || 0;
+  showScreen(id);
+  return true;
+}
+function replaceScreen(id, cursor){
+  var entry = { id:id, from:currentScreen, fromCursor:cursorOf(currentScreen) };
+  if(!nav.replaceTop(entry)) return false;
+  try{ history.replaceState({md:nav.depth()}, ''); }catch(e){}
+  cursorMap[id] = (typeof cursor === 'number') ? cursor : 0;
+  showScreen(id);
+  return true;
+}
+function stepBackTo(target){
+  var popped = nav.popTo(target);
+  histDepth = target;
+  var dest = nav.top() ? nav.top().id : 'inbox';
+  for(var i=0;i<popped.length;i++){
+    if(popped[i].from === dest){ cursorMap[dest] = popped[i].fromCursor; break; }
+  }
+  showScreen(dest);
+}
+window.addEventListener('popstate', function(e){
+  lastPopAt = Date.now();
+  var target = (e.state && typeof e.state.md === 'number') ? e.state.md : 0;
+  if(navSyncing){ histDepth = target; navSyncing = false; return; }
+  if(target > nav.depth()) target = nav.depth();
+  stepBackTo(target);
+});
+/* Programmatic close: consume this screen's history entry via history.back().
+   Echo guard: ignore a request within 300ms of a popstate so a close and its
+   echo can never step back twice. Never closes a sheet directly. */
+function requestBack(){
+  if(Date.now() - lastPopAt < 300) return false;
+  if(!nav.depth()) return false;              /* at root: leave it to Meta's menu */
+  try{ history.back(); return true; }
+  catch(e){ stepBackTo(nav.depth() - 1); return true; }
+}
+function closeAllToRoot(){
+  if(!nav.depth()){ showScreen('inbox'); return; }
+  var d = histDepth;
+  nav.reset(); cursorMap['inbox'] = 0;
+  showScreen('inbox');
+  if(d > 0){ navSyncing = true; try{ history.go(-d); }catch(e){ navSyncing = false; } }
+  histDepth = 0;
+}
+
+/* ================= inbox ================= */
+var ROW_H = 76, ROWS_VISIBLE = 5;
+function syncInboxWindow(cursorIdx){
+  var rows = $('rows'); if(!rows) return;
+  var firstRowCursor = 1; /* focusables: 0 = account header, 1..N = email rows */
+  var r = cursorIdx - firstRowCursor;
+  if(r < 0){ rows.style.transform = 'translateY(0px)'; return; }
+  var start = Math.max(0, Math.min(r - (ROWS_VISIBLE - 1), acct().emails.length - ROWS_VISIBLE));
+  rows.style.transform = 'translateY(' + (-start * ROW_H) + 'px)';
+}
+function renderInbox(){
+  var a = acct();
+  $('acctAvatar').textContent = USER_FIRST.charAt(0);
+  $('acctAvatar').style.background = a.color;
+  $('acctAddr').textContent = a.address;
+  var n = unreadCount(a);
+  $('acctSub').textContent = a.provider + ' · ' + (n ? n + ' unread' : 'all read') + ' · tap to switch account';
+  var wrap = $('rows'); wrap.innerHTML = '';
+  a.emails.forEach(function(em){
+    var b = document.createElement('button');
+    b.className = 'fz erow' + (isUnread(a, em) ? ' unread' : '');
+    b.innerHTML = '<span class="main"><span class="from"></span><br><span class="subj"></span><br><span class="snip"></span></span>' +
+      '<span class="meta"><span class="time"></span><span class="udot' + (isUnread(a, em) ? '' : ' off') + '"></span>' +
+      (isReplied(em) ? '<span class="repliedTag">replied</span>' : '') + '</span>';
+    b.querySelector('.from').textContent = em.from;
+    b.querySelector('.subj').textContent = em.subj;
+    b.querySelector('.snip').textContent = em.snip;
+    b.querySelector('.time').textContent = em.time;
+    b.addEventListener('click', function(){ openRead(em.id); });
+    wrap.appendChild(b);
+  });
+}
+function openRead(id){
+  var a = acct(), em = emailById(a, id); if(!em) return;
+  state.emailId = id; state.bodyPage = 0;
+  markRead(em);
+  renderRead(); renderInbox();
+  openScreen('read', 2); /* land highlight on Quick reply */
+}
+
+/* ================= switcher ================= */
+function renderSwitcher(){
+  var list = $('acctList'); list.innerHTML = '';
+  ACCOUNTS.forEach(function(a){
+    var b = document.createElement('button');
+    b.className = 'fz arow';
+    var n = unreadCount(a);
+    b.innerHTML = '<span class="avatar" style="background:' + a.color + '">' + a.address.charAt(0).toUpperCase() + '</span>' +
+      '<span><span class="addr"></span><br><span class="prov"></span></span>' +
+      (a.id === store.acct ? '<span class="cur">current</span>' : '') +
+      (n ? '<span class="cnt">' + n + '</span>' : '');
+    b.querySelector('.addr').textContent = a.address;
+    b.querySelector('.prov').textContent = a.provider;
+    b.addEventListener('click', function(){
+      if(a.id !== store.acct){ store.acct = a.id; save(); renderInbox(); }
+      requestBack();
+    });
+    list.appendChild(b);
+  });
+}
+
+/* ================= read view ================= */
+var state = { emailId:null, bodyPage:0 };
+var PAGESIZE = 2;
+function curEmail(){ return emailById(acct(), state.emailId); }
+function bodyPages(em){ var p = []; for(var i=0;i<em.body.length;i+=PAGESIZE) p.push(em.body.slice(i, i+PAGESIZE)); return p; }
+function renderRead(){
+  var em = curEmail(); if(!em) return;
+  var a = acct();
+  $('rdFrom').textContent = em.from;
+  $('rdMeta').textContent = em.addr + ' · to ' + a.address + ' · ' + em.time;
+  $('rdSubj').textContent = em.subj;
+  $('rdSummary').textContent = em.summary;
+  var pages = bodyPages(em);
+  state.bodyPage = Math.min(state.bodyPage, pages.length - 1);
+  $('rdBody').textContent = pages[state.bodyPage].join('\n\n');
+  $('rdPageInfo').textContent = pages.length > 1 ? ('Part ' + (state.bodyPage+1) + ' of ' + pages.length) : '';
+  $('btnPager').textContent = state.bodyPage < pages.length - 1 ? 'Next part ›' : (pages.length > 1 ? '‹ Part 1' : '—');
+}
+var speaking = false;
+function stopListen(){ try{ if(window.speechSynthesis) speechSynthesis.cancel(); }catch(e){} speaking = false; var b = $('btnListen'); if(b) b.textContent = '🔊 Listen'; }
+function toggleListen(){
+  var em = curEmail(); if(!em) return;
+  if(!('speechSynthesis' in window)) return;
+  if(speaking){ stopListen(); return; }
+  stopListen();
+  var u = new SpeechSynthesisUtterance(em.subj + '. ' + em.body.join(' '));
+  u.onend = function(){ speaking = false; $('btnListen').textContent = '🔊 Listen'; };
+  speaking = true; $('btnListen').textContent = '⏹ Stop';
+  speechSynthesis.speak(u);
+}
+
+/* ================= quick replies / write / draft ================= */
+function renderQuick(){
+  var em = curEmail(); if(!em) return;
+  var list = $('qList'); list.innerHTML = '';
+  em.quick.forEach(function(q){
+    var b = document.createElement('button');
+    b.className = 'fz chip'; b.textContent = q;
+    b.addEventListener('click', function(){ sendDemo('Quick reply sent: \u201C' + q + '\u201D', em); });
+    list.appendChild(b);
+  });
+}
+var draftCtx = null;
+function cap(s){ return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+function makeDraft(ctx, variant){
+  var dir = (ctx.direction || '').trim();
+  var dirSentence = dir ? cap(dir.replace(/\.$/, '')) + '.' : 'Thanks for your message — I wanted to reply and confirm the details.';
+  var toName = ctx.toName || 'there';
+  var subjLine = ctx.subj || '';
+  if(variant === 1){
+    return 'Hi ' + toName + ',\n\n' + dirSentence + '\n\nBest,\n' + USER_FIRST + '\n(Demo draft about: ' + subjLine + ')';
+  }
+  if(variant === 2){
+    return 'Hello ' + toName + ',\n\nHope you are well. Writing about \u201C' + subjLine + '\u201D: ' + dirSentence +
+           '\n\nHappy to adjust if needed — just let me know what works on your side.\n\nWarm regards,\n' + USER_NAME;
+  }
+  return 'Hi ' + toName + ',\n\nThanks for your email about \u201C' + subjLine + '\u201D.\n\n' + dirSentence +
+         ' I will make sure this is taken care of and will confirm the details shortly.\n\nBest regards,\n' + USER_NAME;
+}
+function renderDraft(){
+  if(!draftCtx) return;
+  $('dMeta').textContent = 'To: ' + draftCtx.toLabel + ' · Subject: ' + (draftCtx.subj || '(no subject)') +
+    ' · Demo draft — in phase 2 the free Gemini API writes this from your direction.';
+  $('dBody').textContent = makeDraft(draftCtx, draftCtx.variant);
+}
+function sendDemo(msg, em, fromDraft){
+  if(em) markReplied(em);
+  if(fromDraft && draftCtx && draftCtx.emailId){ var e2 = emailById(acct(), draftCtx.emailId); if(e2) markReplied(e2); }
+  renderInbox();
+  $('sentMsg').textContent = msg + ' Nothing really left your mailbox — this is a demo build.';
+  replaceScreen('sent', 0);
+}
+
+/* ================= wiring buttons ================= */
+$('acctHead').addEventListener('click', function(){ renderSwitcher(); openScreen('switcher', 0); });
+$('btnSwBack').addEventListener('click', requestBack);
+$('btnNew').addEventListener('click', function(){ openScreen('compose', 0); });
+$('btnSettings').addEventListener('click', function(){ openScreen('settings', 0); });
+$('btnSetBack').addEventListener('click', requestBack);
+$('btnReadBack').addEventListener('click', requestBack);
+$('btnListen').addEventListener('click', toggleListen);
+$('btnPager').addEventListener('click', function(){
+  var em = curEmail(); if(!em) return;
+  var pages = bodyPages(em); if(pages.length < 2) return;
+  state.bodyPage = state.bodyPage < pages.length - 1 ? state.bodyPage + 1 : 0;
+  renderRead(); applyHighlight();
+});
+$('btnQuick').addEventListener('click', function(){ renderQuick(); openScreen('quick', 0); });
+$('btnWrite').addEventListener('click', function(){
+  var em = curEmail(); if(!em) return;
+  draftCtx = { mode:'reply', emailId:em.id, toName:em.from.split(' ')[0], toLabel:em.from + ' <' + em.addr + '>', subj:'Re: ' + em.subj, direction:'', variant:0 };
+  $('wCtx').textContent = 'Reply to ' + em.from + ' · Re: ' + em.subj;
+  $('wDir').value = '';
+  openScreen('write', 0);
+});
+$('btnWDraft').addEventListener('click', function(){
+  if(!draftCtx) return;
+  draftCtx.direction = $('wDir').value; draftCtx.variant = 0;
+  renderDraft(); openScreen('draft', 0);
+});
+$('btnWBack').addEventListener('click', requestBack);
+$('btnCDraft').addEventListener('click', function(){
+  var to = $('cTo').value.trim();
+  draftCtx = { mode:'compose', emailId:null, toName:(to.split('@')[0] || 'there'), toLabel:to || '(no recipient)',
+               subj:$('cSubj').value.trim(), direction:$('cDir').value, variant:0 };
+  renderDraft(); openScreen('draft', 0);
+});
+$('btnCBack').addEventListener('click', requestBack);
+$('btnQuickBack').addEventListener('click', requestBack);
+$('btnDRegen').addEventListener('click', function(){ if(draftCtx){ draftCtx.variant = (draftCtx.variant + 1) % 3; renderDraft(); } });
+$('btnDSend').addEventListener('click', function(){ sendDemo('Your AI draft was sent (demo).', null, true); });
+$('btnDBack').addEventListener('click', requestBack);
+$('btnSentInbox').addEventListener('click', closeAllToRoot);
+
+/* ================= glasses input: swipes (arrows) + pinch (Enter) =================
+   Activation comes ONLY from our cursor index below — never from
+   document.activeElement. Focus is checked solely to let text fields keep
+   their keys while the system composer / typing is in use. */
+function isEditing(){
+  var a = document.activeElement;
+  return a && (a.tagName === 'TEXTAREA' || a.tagName === 'INPUT');
+}
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape'){
+    if(isEditing()){ document.activeElement.blur(); return; }
+    requestBack();   /* routes through history.back() with the echo guard */
+    return;
+  }
+  if(isEditing()) return;
+  var list = focusables(currentScreen); if(!list.length) return;
+  var i = cursorOf(currentScreen);
+  if(e.key === 'ArrowDown' || e.key === 'ArrowRight'){ e.preventDefault(); cursorMap[currentScreen] = (i + 1) % list.length; applyHighlight(); }
+  else if(e.key === 'ArrowUp' || e.key === 'ArrowLeft'){ e.preventDefault(); cursorMap[currentScreen] = (i - 1 + list.length) % list.length; applyHighlight(); }
+  else if(e.key === 'Enter'){
+    e.preventDefault();
+    var el = list[Math.min(i, list.length - 1)];
+    if(el.tagName === 'TEXTAREA' || el.tagName === 'INPUT'){ el.focus(); return; } /* open composer / type */
+    el.click();
+  }
+});
+
+/* ================= init ================= */
+renderInbox();
+showScreen('inbox');
+</script>
+</body>
+</html>
