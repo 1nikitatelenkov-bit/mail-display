@@ -54,8 +54,41 @@
   .udot{width:13px;height:13px;border-radius:50%;background:#4da3ff}
   .udot.off{background:transparent}
   .repliedTag{font-size:13px;color:#7ee2a8;font-weight:700}
-  .bottombar{display:flex;gap:12px;margin-top:auto}
-  .bottombar .bigbtn{margin-top:0;flex:1;text-align:center}
+  /* inbox side rail — collapsed icon strip (~40px, icons only); expands as an
+     overlay drawer (icon + label) when the rail zone is focused (.railFocus)
+     or hovered. The list sits at a fixed offset and never reflows. */
+  #inboxMain{position:relative;flex:1;margin-top:8px}
+  #rowsWrap{position:absolute;left:48px;right:0;top:0;height:372px;overflow:hidden;margin-top:0}
+  #rail{position:absolute;left:0;top:0;bottom:0;width:40px;z-index:6;overflow:hidden;background:#0a1424;
+        border-right:2px solid #1d3350;border-radius:0 12px 12px 0;display:flex;flex-direction:column;
+        justify-content:center;gap:10px;padding:8px 0;transition:width .15s ease}
+  #scr-inbox.railFocus #rail, #rail:hover{width:172px;background:#0d1c33;box-shadow:10px 0 28px rgba(0,0,0,.55)}
+  .fz.rtile{display:flex;align-items:center;gap:6px;width:100%;min-height:56px;padding:8px 0;background:transparent;text-align:left}
+  .fz.rtile.hl{background:#12283f}
+  .rtile .ric{width:34px;flex:0 0 34px;text-align:center;font-size:22px}
+  .rtile .rlab{font-size:18px;font-weight:700;white-space:nowrap;opacity:0;transition:opacity .12s ease}
+  #scr-inbox.railFocus .rtile .rlab, #rail:hover .rtile .rlab{opacity:1}
+  /* settings rows: label left, current value right */
+  .srow{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;
+        padding:11px 14px;margin-top:8px;font-size:19px;font-weight:600}
+  .srow .sval{color:#6ab0ff;font-weight:800;flex:0 0 auto}
+  #scr-settings .setline{font-size:15.5px;line-height:1.4;margin-top:8px}
+  /* text size setting (root classes on #app; email list + reading surfaces) */
+  .ts-small .erow .from{font-size:18px}
+  .ts-small .erow .subj{font-size:16px}
+  .ts-small .erow .snip{font-size:14px}
+  .ts-small #rdBody{font-size:17px}
+  .ts-small #rdSubj{font-size:22px}
+  .ts-small .aibox .txt{font-size:16px}
+  .ts-large .erow .from{font-size:22px}
+  .ts-large .erow .subj{font-size:20px}
+  .ts-large .erow .snip{font-size:17px}
+  .ts-large .erow .from, .ts-large .erow .subj, .ts-large .erow .snip{line-height:1.08}
+  .ts-large #rdBody{font-size:21px}
+  .ts-large #rdSubj{font-size:27px}
+  .ts-large .aibox .txt{font-size:20px}
+  .ts-large .chip{font-size:22px}
+  .ts-large #dBody{font-size:21px}
   /* switcher */
   .arow{display:flex;align-items:center;gap:14px;padding:14px 12px;width:100%;background:transparent;text-align:left;margin-bottom:6px}
   .arow .addr{font-size:21px;font-weight:700}
@@ -105,10 +138,12 @@
       <span class="who"><span class="addr" id="acctAddr">—</span><br><span class="sub" id="acctSub">—</span></span>
       <span class="chev">▾</span>
     </button>
-    <div id="rowsWrap"><div id="rows"></div></div>
-    <div class="bottombar">
-      <button class="fz bigbtn primary" id="btnNew">＋ New email</button>
-      <button class="fz bigbtn" id="btnSettings">Settings</button>
+    <div id="inboxMain">
+      <div id="rail">
+        <button class="fz rtile" id="btnNew"><span class="ric">✉</span><span class="rlab">New</span></button>
+        <button class="fz rtile" id="btnSettings"><span class="ric">⚙</span><span class="rlab">Settings</span></button>
+      </div>
+      <div id="rowsWrap"><div id="rows"></div></div>
     </div>
   </section>
 
@@ -127,7 +162,7 @@
     <div id="rdFrom">—</div>
     <div id="rdMeta">—</div>
     <div id="rdSubj">—</div>
-    <div class="aibox"><div class="lab">AI SUMMARY · DEMO</div><div class="txt" id="rdSummary">—</div></div>
+    <div class="aibox" id="aiBox"><div class="lab">AI SUMMARY · DEMO</div><div class="txt" id="rdSummary">—</div></div>
     <div id="rdBody">—</div>
     <div id="rdPageInfo"></div>
     <div class="actions">
@@ -207,10 +242,16 @@
   <section class="screen" id="scr-settings">
     <div class="topbar"><div class="brand">Mail<span class="dot"> Display</span></div><div class="demoChip">DEMO</div></div>
     <div class="stitle">Settings</div>
-    <div class="setline"><b>Mail Display · build Nov 4 v2</b></div>
-    <div class="setline">Demo build — demo inbox, demo AI replies, no real accounts connected yet. The sign-in backend and live free-Gemini drafting arrive in phase 2.</div>
-    <div class="setline">The app remembers your <b>last-used account</b> and which demo emails you have read or replied to, on this device only.</div>
-    <div class="setline muted">Back = middle-finger pinch. At the inbox, a middle pinch opens Meta's own menu. Swipes work in all four directions: Left/Right move across a row, Up/Down jump between rows.</div>
+    <button class="fz srow valrow" id="setTextSize"><span>Text size</span><span class="sval" id="valTextSize">Medium</span></button>
+    <button class="fz srow valrow" id="setListen"><span>Listen speed</span><span class="sval" id="valListen">Normal</span></button>
+    <button class="fz srow valrow" id="setSummary"><span>AI summary</span><span class="sval" id="valSummary">On</span></button>
+    <button class="fz srow valrow" id="setQuick"><span>Quick replies</span><span class="sval" id="valQuick">On</span></button>
+    <div class="setline"><b>Gemini key</b> — <span id="geminiStatus">Not connected — add your free key in the phone setup</span></div>
+    <div class="setline"><b>Accounts</b> — <span id="acctStatus">Demo accounts</span></div>
+    <div class="setline"><b>Mail Display · build Nov 4 v3</b></div>
+    <div class="setline">Demo build — demo inbox, demo AI replies, no real accounts connected yet. Sign-in and live free-Gemini drafting arrive in phase 2.</div>
+    <div class="setline">The app remembers your <b>last-used account</b>, your read/replied marks and these settings, on this device only.</div>
+    <div class="setline muted">Back = middle-finger pinch. At the inbox, a middle pinch opens Meta's own menu. Swipe Left in the inbox for New email and Settings on the side rail. Swipes work in all four directions: Left/Right across a row, Up/Down between rows.</div>
     <div style="margin-top:auto"><button class="fz backbtn" id="btnSetBack">‹ Back</button></div>
   </section>
 
@@ -322,8 +363,16 @@ var USER_FIRST = 'Sam';
 
 /* ================= persisted demo state ================= */
 var LS_KEY = 'maildisplay.v1';
-var store = { acct:'gmail', flags:{} };
+var store = { acct:'gmail', flags:{}, settings:{ textSize:'medium', listen:'normal', summary:true, quick:true } };
 try{ var raw = localStorage.getItem(LS_KEY); if(raw){ var p = JSON.parse(raw); if(p && p.acct) store = p; } }catch(e){}
+if(!store.flags) store.flags = {};
+var savedSet = store.settings || {};
+store.settings = {
+  textSize: (savedSet.textSize === 'small' || savedSet.textSize === 'large') ? savedSet.textSize : 'medium',
+  listen: savedSet.listen === 'fast' ? 'fast' : 'normal',
+  summary: savedSet.summary !== false,
+  quick: savedSet.quick !== false
+};
 function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(store)); }catch(e){} }
 function acct(){ for(var i=0;i<ACCOUNTS.length;i++) if(ACCOUNTS[i].id===store.acct) return ACCOUNTS[i]; return ACCOUNTS[0]; }
 function emailById(a, id){ for(var i=0;i<a.emails.length;i++) if(a.emails[i].id===id) return a.emails[i]; return null; }
@@ -384,6 +433,30 @@ function gridFlat(rowLens, r, c){ var n = 0; for(var i=0;i<r;i++) n += rowLens[i
 function gridPos(rowLens, flat){ var r = 0; while(r < rowLens.length - 1 && flat >= rowLens[r]){ flat -= rowLens[r]; r++; } return [r, Math.min(flat, rowLens[r] - 1)]; }
 /* GRIDCORE-END */
 
+/* RAILCORE-BEGIN — pure inbox side-rail zone state (no DOM), unit-tested in Node.
+   The inbox has two focus zones: 'list' (account header + email rows on the
+   (row, col) grid) and 'rail' (the side-rail tiles). Left from anywhere in
+   the list enters the rail, remembering the list position; Up/Down walk the
+   tiles (wrapping); Right returns the remembered list position. */
+function createRailCore(tileCount){
+  var zone = 'list', idx = 0, saved = {r:0, c:0};
+  return {
+    zone: function(){ return zone; },
+    idx: function(){ return idx; },
+    saved: function(){ return {r:saved.r, c:saved.c}; },
+    enter: function(listPos){ saved = {r:listPos.r, c:listPos.c}; zone = 'rail'; idx = 0; },
+    move: function(dir){
+      if(zone !== 'rail') return idx;
+      if(dir === 'down') idx = (idx + 1) % tileCount;
+      else if(dir === 'up') idx = (idx - 1 + tileCount) % tileCount;
+      return idx;
+    },
+    exit: function(){ zone = 'list'; return {r:saved.r, c:saved.c}; },
+    reset: function(){ zone = 'list'; idx = 0; saved = {r:0, c:0}; }
+  };
+}
+/* RAILCORE-END */
+
 /* ================= navigation wiring (history = middle-finger pinch Back) =================
    The glasses shell gives the page no Back key: with a history entry present
    it calls history.back() (we see popstate); with none it opens Meta's
@@ -394,6 +467,8 @@ var navSyncing = false;
 var lastPopAt = 0;
 var currentScreen = 'inbox';
 var cursorMap = {};   /* screenId -> highlighted grid position {r, c} */
+var rail = createRailCore(2);   /* inbox side-rail focus zone (list | rail) */
+function railTiles(){ return [$('btnNew'), $('btnSettings')]; }
 try{ history.replaceState({md:0}, ''); }catch(e){}
 
 function cursorOf(scr){ return cursorMap[scr] || {r:0, c:0}; }
@@ -407,13 +482,12 @@ function screenGrid(scr){
   if(scr === 'inbox'){
     push(one($('acctHead')));
     rows('#rows .erow').forEach(function(el){ push([el]); });
-    push([$('btnNew'), $('btnSettings')]);
   } else if(scr === 'switcher'){
     rows('#acctList .arow').forEach(function(el){ push([el]); });
     push(one($('btnSwBack')));
   } else if(scr === 'read'){
     push([$('btnListen'), $('btnPager')]);
-    push([$('btnQuick'), $('btnWrite')]);
+    if(store.settings.quick) push([$('btnQuick'), $('btnWrite')]); else push([$('btnWrite')]);
     push(one($('btnReadBack')));
   } else if(scr === 'quick'){
     rows('#qList .chip').forEach(function(el){ push([el]); });
@@ -428,6 +502,7 @@ function screenGrid(scr){
   } else if(scr === 'sent'){
     push(one($('btnSentInbox')));
   } else if(scr === 'settings'){
+    push(one($('setTextSize'))); push(one($('setListen'))); push(one($('setSummary'))); push(one($('setQuick')));
     push(one($('btnSetBack')));
   }
   return g;
@@ -439,6 +514,10 @@ function clampPos(grid, pos){
 }
 function applyHighlight(){
   document.querySelectorAll('.fz.hl').forEach(function(x){ x.classList.remove('hl'); });
+  if(currentScreen === 'inbox'){
+    $('scr-inbox').classList.toggle('railFocus', rail.zone() === 'rail');
+    if(rail.zone() === 'rail'){ railTiles()[rail.idx()].classList.add('hl'); return; }
+  }
   var grid = screenGrid(currentScreen); if(!grid.length) return;
   var pos = clampPos(grid, cursorOf(currentScreen));
   cursorMap[currentScreen] = pos;
@@ -497,7 +576,7 @@ function requestBack(){
 function closeAllToRoot(){
   if(!nav.depth()){ showScreen('inbox'); return; }
   var d = histDepth;
-  nav.reset(); cursorMap['inbox'] = {r:0, c:0};
+  nav.reset(); rail.reset(); cursorMap['inbox'] = {r:0, c:0};
   showScreen('inbox');
   if(d > 0){ navSyncing = true; try{ history.go(-d); }catch(e){ navSyncing = false; } }
   histDepth = 0;
@@ -512,8 +591,6 @@ function syncInboxWindow(focused){
   if(focused && focused.classList && focused.classList.contains('erow')){
     var idx = Array.prototype.indexOf.call(rowsEl.children, focused);
     if(idx >= 0) start = Math.max(0, Math.min(idx - (ROWS_VISIBLE - 1), total - ROWS_VISIBLE));
-  } else if(focused && (focused.id === 'btnNew' || focused.id === 'btnSettings')){
-    start = Math.max(0, total - ROWS_VISIBLE);
   }
   rowsEl.style.transform = 'translateY(' + (-start * ROW_H) + 'px)';
 }
@@ -594,6 +671,7 @@ function toggleListen(){
   if(speaking){ stopListen(); return; }
   stopListen();
   var u = new SpeechSynthesisUtterance(em.subj + '. ' + em.body.join(' '));
+  u.rate = store.settings.listen === 'fast' ? 1.25 : 1.0;   /* Listen speed setting */
   u.onend = function(){ speaking = false; $('btnListen').textContent = '🔊 Listen'; };
   speaking = true; $('btnListen').textContent = '⏹ Stop';
   speechSynthesis.speak(u);
@@ -641,12 +719,37 @@ function sendDemo(msg, em, fromDraft){
   replaceScreen('sent', {r:0, c:0});
 }
 
+/* ================= settings =================
+   Value rule on this screen: pinch/Enter — or Left/Right — on a value row
+   cycles/toggles it. Changes apply immediately and persist in localStorage. */
+var TEXT_SIZES = ['small', 'medium', 'large'];
+var TEXT_SIZE_LABELS = { small:'Small', medium:'Medium', large:'Large' };
+function applySettings(){
+  var app = $('app'); if(!app) return;
+  app.classList.remove('ts-small'); app.classList.remove('ts-medium'); app.classList.remove('ts-large');
+  app.classList.add('ts-' + store.settings.textSize);
+  var vt = $('valTextSize'); if(vt) vt.textContent = TEXT_SIZE_LABELS[store.settings.textSize];
+  var vl = $('valListen'); if(vl) vl.textContent = store.settings.listen === 'fast' ? 'Fast' : 'Normal';
+  var vs = $('valSummary'); if(vs) vs.textContent = store.settings.summary ? 'On' : 'Off';
+  var vq = $('valQuick'); if(vq) vq.textContent = store.settings.quick ? 'On' : 'Off';
+  var box = $('aiBox'); if(box) box.style.display = store.settings.summary ? '' : 'none';
+  var qb = $('btnQuick'); if(qb) qb.style.display = store.settings.quick ? '' : 'none';
+}
+function onSetTextSize(){ var i = TEXT_SIZES.indexOf(store.settings.textSize); store.settings.textSize = TEXT_SIZES[(i + 1) % TEXT_SIZES.length]; save(); applySettings(); }
+function onSetListen(){ store.settings.listen = store.settings.listen === 'fast' ? 'normal' : 'fast'; save(); applySettings(); }
+function onSetSummary(){ store.settings.summary = !store.settings.summary; save(); applySettings(); }
+function onSetQuick(){ store.settings.quick = !store.settings.quick; save(); applySettings(); }
+
 /* ================= wiring buttons ================= */
 $('acctHead').addEventListener('click', function(){ renderSwitcher(); openScreen('switcher', {r:0, c:0}); });
 $('btnSwBack').addEventListener('click', requestBack);
 $('btnNew').addEventListener('click', function(){ openScreen('compose', {r:0, c:0}); });
 $('btnSettings').addEventListener('click', function(){ openScreen('settings', {r:0, c:0}); });
 $('btnSetBack').addEventListener('click', requestBack);
+$('setTextSize').addEventListener('click', onSetTextSize);
+$('setListen').addEventListener('click', onSetListen);
+$('setSummary').addEventListener('click', onSetSummary);
+$('setQuick').addEventListener('click', onSetQuick);
 $('btnReadBack').addEventListener('click', requestBack);
 $('btnListen').addEventListener('click', toggleListen);
 $('btnPager').addEventListener('click', function(){
@@ -697,6 +800,29 @@ document.addEventListener('keydown', function(e){
     return;
   }
   if(isEditing()) return;
+  /* Inbox side rail — two focus zones. Left from anywhere in the list enters
+     the rail (remembering the list position); on the rail, Up/Down walk the
+     tiles, Enter activates, Right returns to the remembered list position.
+     While the rail is focused this returns before any list scrolling. */
+  if(currentScreen === 'inbox'){
+    if(rail.zone() === 'rail'){
+      if(e.key === 'Enter'){ e.preventDefault(); railTiles()[rail.idx()].click(); return; }
+      var railHandled = true;
+      if(e.key === 'ArrowDown') rail.move('down');
+      else if(e.key === 'ArrowUp') rail.move('up');
+      else if(e.key === 'ArrowRight'){ var sv = rail.exit(); cursorMap['inbox'] = {r:sv.r, c:sv.c}; }
+      else if(e.key === 'ArrowLeft'){ /* already on the rail: stay */ }
+      else railHandled = false;
+      if(railHandled){ e.preventDefault(); applyHighlight(); }
+      return;
+    }
+    if(e.key === 'ArrowLeft'){
+      e.preventDefault();
+      rail.enter(clampPos(screenGrid('inbox'), cursorOf('inbox')));
+      applyHighlight();
+      return;
+    }
+  }
   var grid = screenGrid(currentScreen); if(!grid.length) return;
   var lens = grid.map(function(row){ return row.length; });
   var pos = clampPos(grid, cursorOf(currentScreen));
@@ -707,6 +833,10 @@ document.addEventListener('keydown', function(e){
   else if(e.key === 'ArrowLeft') dir = 'left';
   if(dir){
     e.preventDefault();
+    if(currentScreen === 'settings' && (dir === 'left' || dir === 'right')){
+      var sel0 = grid[pos.r][pos.c];
+      if(sel0.classList && sel0.classList.contains('valrow')){ sel0.click(); return; }
+    }
     var np = gridMove(lens, pos.r, pos.c, dir);
     cursorMap[currentScreen] = {r:np[0], c:np[1]};
     applyHighlight();
@@ -720,6 +850,8 @@ document.addEventListener('keydown', function(e){
 });
 
 /* ================= init ================= */
+$('acctStatus').textContent = ACCOUNTS.map(function(a){ return a.provider; }).join(' · ') + ' — add or remove accounts in the phone setup';
+applySettings();
 renderInbox();
 showScreen('inbox');
 </script>
