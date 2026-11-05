@@ -124,6 +124,11 @@
   #sentWrap .big{font-size:30px;font-weight:800}
   #sentWrap .check{width:92px;height:92px;border-radius:50%;background:#14532d;display:flex;align-items:center;justify-content:center;font-size:52px}
   .setline{font-size:18px;line-height:1.5;margin-top:10px}
+  #errBar{display:none;width:100%;padding:9px 14px;margin-bottom:8px;background:#5a1d1d;color:#ffd7d7;
+          font-size:16px;font-weight:700;text-align:left}
+  #errBar.hl{border-color:#ff9d9d;background:#6e2424}
+  #pairCode{font-size:88px;font-weight:800;letter-spacing:14px;text-align:center;margin:26px 0 8px;color:#fff}
+  .errnote{color:#ff9d9d !important}
   #hint{position:absolute;left:0;right:0;bottom:2px;text-align:center;font-size:13px;color:#54708f}
 </style>
 </head>
@@ -133,6 +138,7 @@
   <!-- INBOX (root) -->
   <section class="screen" id="scr-inbox">
     <div class="topbar"><div class="brand">Mail<span class="dot"> Display</span></div><div class="demoChip">DEMO</div></div>
+    <button class="fz" id="errBar">⚠ Can't reach the server — tap to retry</button>
     <button class="fz" id="acctHead">
       <span class="avatar" id="acctAvatar">S</span>
       <span class="who"><span class="addr" id="acctAddr">—</span><br><span class="sub" id="acctSub">—</span></span>
@@ -162,7 +168,7 @@
     <div id="rdFrom">—</div>
     <div id="rdMeta">—</div>
     <div id="rdSubj">—</div>
-    <div class="aibox" id="aiBox"><div class="lab">AI SUMMARY · DEMO</div><div class="txt" id="rdSummary">—</div></div>
+    <div class="aibox" id="aiBox"><div class="lab" id="rdSummaryLab">AI SUMMARY · DEMO</div><div class="txt" id="rdSummary">—</div></div>
     <div id="rdBody">—</div>
     <div id="rdPageInfo"></div>
     <div class="actions">
@@ -192,6 +198,7 @@
     <div class="topbar"><div class="brand">Mail<span class="dot"> Display</span></div><div class="demoChip">DEMO</div></div>
     <div class="stitle">Write with AI</div>
     <div class="note" id="wCtx" style="margin:0 0 6px">—</div>
+    <div class="note errnote" id="wErr" style="display:none;margin:0 0 6px"></div>
     <div class="flabel">Your direction — pinch the box and dictate or write it</div>
     <textarea class="fz" id="wDir" placeholder="e.g. Say no politely, but propose Tuesday morning"></textarea>
     <button class="fz bigbtn primary" id="btnWDraft">Draft it</button>
@@ -202,6 +209,7 @@
   <section class="screen" id="scr-compose">
     <div class="topbar"><div class="brand">Mail<span class="dot"> Display</span></div><div class="demoChip">DEMO</div></div>
     <div class="stitle">New email</div>
+    <div class="note errnote" id="cErr" style="display:none;margin:0 0 6px"></div>
     <div class="flabel">To</div>
     <input type="text" class="fz" id="cTo" placeholder="name@example.com">
     <div class="flabel">Subject</div>
@@ -215,7 +223,7 @@
   <!-- DRAFT PREVIEW -->
   <section class="screen" id="scr-draft">
     <div class="topbar"><div class="brand">Mail<span class="dot"> Display</span></div><div class="demoChip">DEMO</div></div>
-    <div class="stitle">AI draft · Demo</div>
+    <div class="stitle" id="dTitle">AI draft · Demo</div>
     <div class="note" id="dMeta" style="margin:0 0 10px">—</div>
     <div id="dBody">—</div>
     <div class="actions">
@@ -232,26 +240,39 @@
     <div class="topbar"><div class="brand">Mail<span class="dot"> Display</span></div><div class="demoChip">DEMO</div></div>
     <div id="sentWrap">
       <div class="check">✓</div>
-      <div class="big">Sent (demo)</div>
+      <div class="big" id="sentBig">Sent (demo)</div>
       <div class="note" id="sentMsg" style="text-align:center">Nothing really left your mailbox — this is a demo build.</div>
     </div>
     <button class="fz bigbtn primary" id="btnSentInbox">Back to inbox</button>
+  </section>
+
+  <!-- PAIRING -->
+  <section class="screen" id="scr-pairing">
+    <div class="topbar"><div class="brand">Mail<span class="dot"> Display</span></div><div class="demoChip">DEMO</div></div>
+    <div class="stitle">Pair this device</div>
+    <div class="note" style="margin-top:0">Enter this code in the phone app:</div>
+    <div id="pairCode">------</div>
+    <div class="note" id="pairStatus" style="text-align:center">Waiting for the phone app…</div>
+    <div style="margin-top:auto"><button class="fz backbtn" id="btnPairCancel">Cancel</button></div>
   </section>
 
   <!-- SETTINGS -->
   <section class="screen" id="scr-settings">
     <div class="topbar"><div class="brand">Mail<span class="dot"> Display</span></div><div class="demoChip">DEMO</div></div>
     <div class="stitle">Settings</div>
+    <div class="setline"><b>Connection</b> — <span id="connStatus">Not paired — demo mail</span></div>
+    <input type="text" class="fz" id="beUrl" placeholder="Backend address, e.g. https://mail.example.com">
+    <button class="fz bigbtn primary" id="btnPairStart">Pair this device</button>
+    <button class="fz bigbtn" id="btnUnpair" style="display:none">Unpair</button>
     <button class="fz srow valrow" id="setTextSize"><span>Text size</span><span class="sval" id="valTextSize">Medium</span></button>
     <button class="fz srow valrow" id="setListen"><span>Listen speed</span><span class="sval" id="valListen">Normal</span></button>
     <button class="fz srow valrow" id="setSummary"><span>AI summary</span><span class="sval" id="valSummary">On</span></button>
     <button class="fz srow valrow" id="setQuick"><span>Quick replies</span><span class="sval" id="valQuick">On</span></button>
     <div class="setline"><b>Gemini key</b> — <span id="geminiStatus">Not connected — add your free key in the phone setup</span></div>
     <div class="setline"><b>Accounts</b> — <span id="acctStatus">Demo accounts</span></div>
-    <div class="setline"><b>Mail Display · build Nov 4 v3</b></div>
-    <div class="setline">Demo build — demo inbox, demo AI replies, no real accounts connected yet. Sign-in and live free-Gemini drafting arrive in phase 2.</div>
-    <div class="setline">The app remembers your <b>last-used account</b>, your read/replied marks and these settings, on this device only.</div>
-    <div class="setline muted">Back = middle-finger pinch. At the inbox, a middle pinch opens Meta's own menu. Swipe Left in the inbox for New email and Settings on the side rail. Swipes work in all four directions: Left/Right across a row, Up/Down between rows.</div>
+    <div class="setline"><b>Mail Display · build Nov 5 v4</b></div>
+    <div class="setline">Pair with the phone app above to read your real mail here — until then this is a demo build. The app remembers your <b>last-used account</b>, read/replied marks and these settings, on this device only.</div>
+    <div class="setline muted">Back = middle-finger pinch. Swipe Left in the inbox for the side rail. Swipes work in all four directions: Left/Right across a row, Up/Down between rows.</div>
     <div style="margin-top:auto"><button class="fz backbtn" id="btnSetBack">‹ Back</button></div>
   </section>
 
@@ -260,7 +281,7 @@
 <script>
 'use strict';
 /* ================= demo data (all people & companies are fictional) ================= */
-var ACCOUNTS = [
+var DEMO_ACCOUNTS = [
  { id:'gmail', provider:'Gmail', address:'sam.parker@gmail.com', color:'#ea4335', emails:[
   { id:'g1', from:'Lena Ortiz', addr:'lena@northbeamstudio.example', subj:'Revised designs for the landing page', time:'9:41 AM', unread:true,
     snip:'I uploaded v3 of the hero section and tightened the…',
@@ -361,6 +382,231 @@ var ACCOUNTS = [
 var USER_NAME = 'Sam Parker';
 var USER_FIRST = 'Sam';
 
+/* ================= live mode (phase-2 backend) =================
+   Pairing + connection persist separately from the demo store. When never
+   paired, NONE of this runs and fetch is never called (demo purity). */
+var CONN_KEY = 'maildisplay.conn.v1';
+var LIVE = { paired:false, base:'', key:'', accounts:null, cache:{ accounts:[], inbox:{} } };
+try{
+  var craw = localStorage.getItem(CONN_KEY);
+  if(craw){ var cp = JSON.parse(craw);
+    if(cp && cp.base && cp.key){ LIVE.paired = true; LIVE.base = cp.base; LIVE.key = cp.key;
+      if(cp.cache && cp.cache.accounts) LIVE.cache = cp.cache; } }
+}catch(e){}
+function saveConn(){
+  try{
+    if(LIVE.paired) localStorage.setItem(CONN_KEY, JSON.stringify({ base:LIVE.base, key:LIVE.key, cache:LIVE.cache }));
+    else localStorage.removeItem(CONN_KEY);
+  }catch(e){}
+}
+function accounts(){ return LIVE.paired ? (LIVE.accounts || []) : DEMO_ACCOUNTS; }
+function providerInfo(provider, address){
+  var addr = (address || '').toLowerCase();
+  if(provider === 'google') return { label:'Gmail', color:'#ea4335' };
+  if(provider === 'microsoft') return { label:'Outlook', color:'#2f7de1' };
+  if(provider === 'demo') return { label:'Demo', color:'#ffb340' };
+  if(addr.indexOf('yahoo') >= 0) return { label:'Yahoo', color:'#6001d2' };
+  if(provider === 'imap') return { label:'IMAP', color:'#7a8aa0' };
+  return { label:provider || 'Mail', color:'#7a8aa0' };
+}
+function fmtTime(iso){
+  var d = new Date(iso); if(isNaN(d.getTime())) return '';
+  var now = new Date();
+  var sameDay = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+  if(sameDay){
+    var h = d.getHours(), m = d.getMinutes(), ap = h >= 12 ? 'PM' : 'AM'; h = h % 12; if(h === 0) h = 12;
+    return h + ':' + (m < 10 ? '0' : '') + m + ' ' + ap;
+  }
+  var yest = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+  if(d.getFullYear() === yest.getFullYear() && d.getMonth() === yest.getMonth() && d.getDate() === yest.getDate()) return 'Yesterday';
+  return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
+}
+function api(path, opts, baseOverride){
+  opts = opts || {};
+  var h = { 'Content-Type':'application/json' };
+  if(LIVE.key && !baseOverride) h['Authorization'] = 'Bearer ' + LIVE.key;
+  return fetch((baseOverride || LIVE.base) + path, {
+    method: opts.method || 'GET', headers: h,
+    body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined
+  }).then(function(r){
+    return r.json().catch(function(){ return {}; }).then(function(j){
+      if(!r.ok){ var e = new Error(j.error || ('HTTP ' + r.status)); e.code = j.error; e.status = r.status; throw e; }
+      return j;
+    });
+  });
+}
+function makeLiveAccount(raw){
+  var info = providerInfo(raw.provider, raw.address);
+  var cached = LIVE.cache.inbox[raw.id];
+  return { id:raw.id, provider:info.label, providerRaw:raw.provider, address:raw.address, color:info.color,
+           live:true, serverUnread:(typeof raw.unread === 'number' ? raw.unread : 0),
+           loaded:!!cached, emails:cached ? cached.slice() : [] };
+}
+function mapLiveMessage(acctId, m){
+  return { id:acctId + '::' + m.id, mid:m.id, from:m.from, addr:m.fromAddress, subj:m.subject,
+           snip:m.snippet, time:fmtTime(m.timeISO), timeISO:m.timeISO, unread:!!m.unread,
+           body:null, summary:null, quick:null };
+}
+function applyModeChip(){
+  document.querySelectorAll('.demoChip').forEach(function(ch){
+    ch.textContent = LIVE.paired ? 'LIVE' : 'DEMO';
+    ch.style.background = LIVE.paired ? '#35d07f' : '#ffb340';
+  });
+}
+function renderConn(){
+  var cs = $('connStatus'); if(!cs) return;
+  if(LIVE.paired){
+    cs.textContent = 'Paired — live mail (' + LIVE.base.replace(/^https?:\/\//, '') + ')';
+    $('beUrl').style.display = 'none'; $('btnPairStart').style.display = 'none'; $('btnUnpair').style.display = '';
+    $('acctStatus').textContent = accounts().map(function(a){ return a.provider; }).join(' · ') + ' — add or remove accounts in the phone app';
+  } else {
+    cs.textContent = 'Not paired — demo mail';
+    $('beUrl').style.display = ''; $('btnPairStart').style.display = ''; $('btnUnpair').style.display = 'none';
+    $('geminiStatus').textContent = 'Not connected — add your free key in the phone setup';
+    $('acctStatus').textContent = DEMO_ACCOUNTS.map(function(a){ return a.provider; }).join(' · ') + ' — add or remove accounts in the phone setup';
+  }
+}
+/* ---- pairing ---- */
+var pairTimer = null, pairBase = '', pairCodeStr = '';
+function stopPairPoll(){ if(pairTimer){ clearInterval(pairTimer); pairTimer = null; } }
+function startPairing(){
+  var url = $('beUrl').value.trim().replace(/\/+$/, '');
+  if(!/^https?:\/\/.+/.test(url)){ $('connStatus').textContent = 'Enter the backend address first (https://…)'; return; }
+  pairBase = url;
+  $('connStatus').textContent = 'Contacting ' + url.replace(/^https?:\/\//, '') + '…';
+  api('/v1/devices/pairing', { method:'POST', body:{} }, url).then(function(res){
+    pairCodeStr = res.code;
+    $('pairCode').textContent = res.code;
+    $('pairStatus').textContent = 'Waiting for the phone app…';
+    openScreen('pairing', {r:0, c:0});
+    stopPairPoll();
+    pairTimer = setInterval(pollPair, 3000);
+  }).catch(function(){ $('connStatus').textContent = 'Could not reach that backend — check the address'; });
+}
+function pollPair(){
+  api('/v1/devices/pairing/' + encodeURIComponent(pairCodeStr), {}, pairBase).then(function(res){
+    if(res.status === 'linked' && res.deviceApiKey){
+      stopPairPoll();
+      LIVE.paired = true; LIVE.base = pairBase; LIVE.key = res.deviceApiKey; LIVE.accounts = null;
+      saveConn();
+      closeAllToRoot();
+      enterLiveMode();
+    }
+  }).catch(function(){});
+}
+function enterLiveMode(){
+  applyModeChip(); renderConn();
+  syncSettingsFromServer();
+  refreshGeminiStatus();
+  loadLiveAccounts();
+}
+function unpair(){
+  stopPairPoll();
+  LIVE.paired = false; LIVE.base = ''; LIVE.key = ''; LIVE.accounts = null;
+  LIVE.cache = { accounts:[], inbox:{} };
+  saveConn();
+  store.acct = DEMO_ACCOUNTS[0].id; save();
+  hideErrBar();
+  applyModeChip(); renderConn(); applySettings(); renderInbox();
+  if(currentScreen === 'settings') applyHighlight();
+}
+/* ---- live data ---- */
+function showErrBar(){
+  var b = $('errBar'); if(!b) return;
+  b.style.display = 'block';
+  if(currentScreen === 'inbox') applyHighlight();
+}
+function hideErrBar(){ var b = $('errBar'); if(b) b.style.display = 'none'; }
+function loadLiveAccounts(){
+  if(!LIVE.paired) return;
+  api('/v1/accounts').then(function(raws){
+    LIVE.cache.accounts = raws;
+    LIVE.accounts = raws.map(makeLiveAccount);
+    var found = false;
+    LIVE.accounts.forEach(function(a){ if(a.id === store.acct) found = true; });
+    if(!found && LIVE.accounts.length){ store.acct = LIVE.accounts[0].id; save(); }
+    saveConn();
+    renderConn(); renderInbox(); renderSwitcher();
+    if(LIVE.accounts.length) loadLiveInbox(store.acct);
+  }).catch(function(){ showErrBar(); });
+}
+function loadLiveInbox(acctId){
+  if(!LIVE.paired) return;
+  var a = null;
+  accounts().forEach(function(x){ if(x.id === acctId) a = x; });
+  if(!a) return;
+  api('/v1/mail?accountId=' + encodeURIComponent(acctId) + '&limit=30').then(function(msgs){
+    a.emails = msgs.map(function(m){ return mapLiveMessage(acctId, m); });
+    a.loaded = true;
+    LIVE.cache.inbox[acctId] = a.emails;
+    saveConn();
+    hideErrBar();
+    renderInbox(); renderSwitcher();
+    if(currentScreen === 'inbox') applyHighlight();
+  }).catch(function(){ showErrBar(); renderInbox(); });
+}
+function fetchMessageBody(a, em){
+  api('/v1/mail/' + encodeURIComponent(a.id) + '/' + encodeURIComponent(em.mid)).then(function(full){
+    em.body = full.body || [];
+    em.from = full.from || em.from; em.addr = full.fromAddress || em.addr; em.subj = full.subject || em.subj;
+    LIVE.cache.inbox[a.id] = a.emails; saveConn();
+    return api('/v1/mail/' + encodeURIComponent(a.id) + '/' + encodeURIComponent(em.mid) + '/read', { method:'POST', body:{} });
+  }).then(function(){
+    if(a.serverUnread > 0) a.serverUnread--;
+    if(currentScreen === 'read' && state.emailId === em.id) renderRead();
+    renderInbox();
+  }).catch(function(){
+    if(currentScreen === 'read' && state.emailId === em.id && !em.body) $('rdBody').textContent = 'Could not load this email — check the connection.';
+  });
+}
+function fetchSummary(a, em){
+  if(em.summary){ return; }
+  api('/v1/ai/summary', { method:'POST', body:{ accountId:a.id, messageId:em.mid } }).then(function(res){
+    em.summary = res.summary;
+    if(currentScreen === 'read' && state.emailId === em.id) $('rdSummary').textContent = em.summary;
+  }).catch(function(e){
+    em.summary = (e && e.code === 'no_gemini_key') ? 'Add your free Gemini key in the phone app to use AI' : 'Summary unavailable right now.';
+    if(currentScreen === 'read' && state.emailId === em.id) $('rdSummary').textContent = em.summary;
+  });
+}
+var GENERIC_QUICK = ['Thanks — got it.', 'I will look at this today and reply properly.', 'Can we talk about this tomorrow?'];
+function fetchQuick(a, em){
+  api('/v1/ai/quick-replies', { method:'POST', body:{ accountId:a.id, messageId:em.mid } }).then(function(res){
+    em.quick = (res.replies || []).slice(0, 3);
+    if(!em.quick.length) em.quick = GENERIC_QUICK.slice();
+    if(currentScreen === 'quick' && state.emailId === em.id) renderQuick();
+  }).catch(function(){
+    em.quick = GENERIC_QUICK.slice();
+    if(currentScreen === 'quick' && state.emailId === em.id) renderQuick();
+  });
+}
+function refreshGeminiStatus(){
+  if(!LIVE.paired) return;
+  api('/v1/ai/key/status').then(function(res){
+    $('geminiStatus').textContent = res.connected ? 'Connected ✓ — your free key is on the server' : 'Not connected — add your free key in the phone app';
+  }).catch(function(){});
+}
+/* ---- settings sync (phone and glasses stay in step) ---- */
+function settingsPayload(){
+  return { textSize:store.settings.textSize, listenSpeed:store.settings.listen,
+           aiSummary:store.settings.summary, quickReplies:store.settings.quick };
+}
+function syncSettingsToServer(){
+  if(!LIVE.paired) return;
+  api('/v1/settings', { method:'PUT', body:settingsPayload() }).catch(function(){});
+}
+function syncSettingsFromServer(){
+  if(!LIVE.paired) return;
+  api('/v1/settings').then(function(sv){
+    if(!sv) return;
+    if(sv.textSize === 'small' || sv.textSize === 'medium' || sv.textSize === 'large') store.settings.textSize = sv.textSize;
+    if(sv.listenSpeed === 'normal' || sv.listenSpeed === 'fast') store.settings.listen = sv.listenSpeed;
+    if(typeof sv.aiSummary === 'boolean') store.settings.summary = sv.aiSummary;
+    if(typeof sv.quickReplies === 'boolean') store.settings.quick = sv.quickReplies;
+    save(); applySettings();
+  }).catch(function(){});
+}
+
 /* ================= persisted demo state ================= */
 var LS_KEY = 'maildisplay.v1';
 var store = { acct:'gmail', flags:{}, settings:{ textSize:'medium', listen:'normal', summary:true, quick:true } };
@@ -374,11 +620,14 @@ store.settings = {
   quick: savedSet.quick !== false
 };
 function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(store)); }catch(e){} }
-function acct(){ for(var i=0;i<ACCOUNTS.length;i++) if(ACCOUNTS[i].id===store.acct) return ACCOUNTS[i]; return ACCOUNTS[0]; }
+function acct(){ var list = accounts(); for(var i=0;i<list.length;i++) if(list[i].id===store.acct) return list[i]; return list[0] || null; }
 function emailById(a, id){ for(var i=0;i<a.emails.length;i++) if(a.emails[i].id===id) return a.emails[i]; return null; }
 function isUnread(a, em){ var f = store.flags[em.id]; return em.unread && !(f && f.r); }
 function isReplied(em){ var f = store.flags[em.id]; return !!(f && f.rp); }
-function unreadCount(a){ return a.emails.filter(function(em){ return isUnread(a, em); }).length; }
+function unreadCount(a){
+  if(a.live && !a.loaded) return a.serverUnread || 0;
+  return a.emails.filter(function(em){ return isUnread(a, em); }).length;
+}
 function markRead(em){ var f = store.flags[em.id] || (store.flags[em.id] = {}); f.r = 1; save(); }
 function markReplied(em){ var f = store.flags[em.id] || (store.flags[em.id] = {}); f.r = 1; f.rp = 1; save(); }
 function $(id){ return document.getElementById(id); }
@@ -480,6 +729,7 @@ function screenGrid(scr){
   var g = [];
   function push(row){ row = (row || []).filter(Boolean); if(row.length) g.push(row); }
   if(scr === 'inbox'){
+    if($('errBar') && $('errBar').style.display !== 'none') push(one($('errBar')));
     push(one($('acctHead')));
     rows('#rows .erow').forEach(function(el){ push([el]); });
   } else if(scr === 'switcher'){
@@ -502,8 +752,11 @@ function screenGrid(scr){
   } else if(scr === 'sent'){
     push(one($('btnSentInbox')));
   } else if(scr === 'settings'){
+    if(LIVE.paired) push(one($('btnUnpair'))); else { push(one($('beUrl'))); push(one($('btnPairStart'))); }
     push(one($('setTextSize'))); push(one($('setListen'))); push(one($('setSummary'))); push(one($('setQuick')));
     push(one($('btnSetBack')));
+  } else if(scr === 'pairing'){
+    push(one($('btnPairCancel')));
   }
   return g;
 }
@@ -526,6 +779,7 @@ function applyHighlight(){
   if(currentScreen === 'inbox') syncInboxWindow(el);
 }
 function showScreen(id){
+  if(id !== 'pairing') stopPairPoll();
   if(currentScreen === 'read' && id !== 'read') stopListen();
   currentScreen = id;
   document.querySelectorAll('.screen').forEach(function(s){ s.classList.toggle('active', s.id === 'scr-' + id); });
@@ -586,7 +840,8 @@ function closeAllToRoot(){
 var ROW_H = 76, ROWS_VISIBLE = 5;
 function syncInboxWindow(focused){
   var rowsEl = $('rows'); if(!rowsEl) return;
-  var total = acct().emails.length;
+  var acc0 = acct(); if(!acc0) return;
+  var total = acc0.emails.length;
   var start = 0;
   if(focused && focused.classList && focused.classList.contains('erow')){
     var idx = Array.prototype.indexOf.call(rowsEl.children, focused);
@@ -596,6 +851,8 @@ function syncInboxWindow(focused){
 }
 function renderInbox(){
   var a = acct();
+  var wrap0 = $('rows');
+  if(!a){ $('acctAvatar').textContent = '?'; $('acctAddr').textContent = 'Loading your accounts…'; $('acctSub').textContent = ''; if(wrap0) wrap0.innerHTML = ''; return; }
   $('acctAvatar').textContent = USER_FIRST.charAt(0);
   $('acctAvatar').style.background = a.color;
   $('acctAddr').textContent = a.address;
@@ -622,12 +879,17 @@ function openRead(id){
   markRead(em);
   renderRead(); renderInbox();
   openScreen('read', {r:1, c:0}); /* land highlight on Quick reply (grid row 1) */
+  if(a.live){
+    if(!em.body) fetchMessageBody(a, em);
+    else api('/v1/mail/' + encodeURIComponent(a.id) + '/' + encodeURIComponent(em.mid) + '/read', { method:'POST', body:{} }).catch(function(){});
+    if(store.settings.summary) fetchSummary(a, em);
+  }
 }
 
 /* ================= switcher ================= */
 function renderSwitcher(){
   var list = $('acctList'); list.innerHTML = '';
-  ACCOUNTS.forEach(function(a){
+  accounts().forEach(function(a){
     var b = document.createElement('button');
     b.className = 'fz arow';
     var n = unreadCount(a);
@@ -638,7 +900,7 @@ function renderSwitcher(){
     b.querySelector('.addr').textContent = a.address;
     b.querySelector('.prov').textContent = a.provider;
     b.addEventListener('click', function(){
-      if(a.id !== store.acct){ store.acct = a.id; save(); renderInbox(); }
+      if(a.id !== store.acct){ store.acct = a.id; save(); renderInbox(); if(a.live && !a.loaded) loadLiveInbox(a.id); }
       requestBack();
     });
     list.appendChild(b);
@@ -648,7 +910,7 @@ function renderSwitcher(){
 /* ================= read view ================= */
 var state = { emailId:null, bodyPage:0 };
 var PAGESIZE = 2;
-function curEmail(){ return emailById(acct(), state.emailId); }
+function curEmail(){ var a = acct(); return a ? emailById(a, state.emailId) : null; }
 function bodyPages(em){ var p = []; for(var i=0;i<em.body.length;i+=PAGESIZE) p.push(em.body.slice(i, i+PAGESIZE)); return p; }
 function renderRead(){
   var em = curEmail(); if(!em) return;
@@ -656,7 +918,9 @@ function renderRead(){
   $('rdFrom').textContent = em.from;
   $('rdMeta').textContent = em.addr + ' · to ' + a.address + ' · ' + em.time;
   $('rdSubj').textContent = em.subj;
-  $('rdSummary').textContent = em.summary;
+  $('rdSummaryLab').textContent = a.live ? 'AI SUMMARY' : 'AI SUMMARY · DEMO';
+  $('rdSummary').textContent = a.live ? (em.summary || 'Summarizing…') : em.summary;
+  if(!em.body){ $('rdBody').textContent = 'Loading…'; $('rdPageInfo').textContent = ''; return; }
   var pages = bodyPages(em);
   state.bodyPage = Math.min(state.bodyPage, pages.length - 1);
   $('rdBody').textContent = pages[state.bodyPage].join('\n\n');
@@ -666,7 +930,7 @@ function renderRead(){
 var speaking = false;
 function stopListen(){ try{ if(window.speechSynthesis) speechSynthesis.cancel(); }catch(e){} speaking = false; var b = $('btnListen'); if(b) b.textContent = '🔊 Listen'; }
 function toggleListen(){
-  var em = curEmail(); if(!em) return;
+  var em = curEmail(); if(!em || !em.body) return;
   if(!('speechSynthesis' in window)) return;
   if(speaking){ stopListen(); return; }
   stopListen();
@@ -680,13 +944,28 @@ function toggleListen(){
 /* ================= quick replies / write / draft ================= */
 function renderQuick(){
   var em = curEmail(); if(!em) return;
+  var a = acct();
   var list = $('qList'); list.innerHTML = '';
-  em.quick.forEach(function(q){
+  if(a.live && !em.quick){
+    var n = document.createElement('div');
+    n.className = 'note'; n.textContent = 'Asking Gemini for suggestions…';
+    list.appendChild(n);
+    return;
+  }
+  (em.quick || []).forEach(function(q){
     var b = document.createElement('button');
     b.className = 'fz chip'; b.textContent = q;
-    b.addEventListener('click', function(){ sendDemo('Quick reply sent: \u201C' + q + '\u201D', em); });
+    b.addEventListener('click', function(){ sendReply(q, em); });
     list.appendChild(b);
   });
+}
+function sendReply(q, em){
+  var a = acct();
+  if(!a.live){ sendDemo('Quick reply sent: \u201C' + q + '\u201D', em); return; }
+  api('/v1/mail/send', { method:'POST', body:{ accountId:a.id, to:em.addr, subject:'Re: ' + em.subj, body:q, replyToMessageId:em.mid } }).then(function(res){
+    markReplied(em); renderInbox();
+    showSent(res && res.demo ? 'demo' : 'live', 'Quick reply sent: \u201C' + q + '\u201D');
+  }).catch(function(){});
 }
 var draftCtx = null;
 function cap(s){ return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
@@ -707,16 +986,43 @@ function makeDraft(ctx, variant){
 }
 function renderDraft(){
   if(!draftCtx) return;
+  $('btnDSend').textContent = draftCtx.live ? 'Send' : 'Send (demo)';
+  if(draftCtx.live){
+    $('dTitle').textContent = 'AI draft';
+    $('dMeta').textContent = 'To: ' + draftCtx.toLabel + ' · Subject: ' + (draftCtx.liveSubject || draftCtx.subj || '(no subject)') + ' · Written by Gemini from your direction.';
+    $('dBody').textContent = draftCtx.liveBody || '';
+    return;
+  }
+  $('dTitle').textContent = 'AI draft · Demo';
   $('dMeta').textContent = 'To: ' + draftCtx.toLabel + ' · Subject: ' + (draftCtx.subj || '(no subject)') +
     ' · Demo draft — in phase 2 the free Gemini API writes this from your direction.';
   $('dBody').textContent = makeDraft(draftCtx, draftCtx.variant);
+}
+function callDraftApi(openAfter){
+  var payload = { accountId:draftCtx.accountId, direction:draftCtx.direction };
+  if(draftCtx.emailMid) payload.messageId = draftCtx.emailMid;
+  if(draftCtx.fromScr === 'compose'){ payload.to = draftCtx.toAddr; payload.subject = draftCtx.subj; }
+  api('/v1/ai/draft', { method:'POST', body:payload }).then(function(res){
+    draftCtx.liveSubject = res.subject; draftCtx.liveBody = res.body;
+    if(openAfter){ renderDraft(); openScreen('draft', {r:0, c:0}); }
+    else renderDraft();
+  }).catch(function(){
+    var errEl = draftCtx.fromScr === 'compose' ? $('cErr') : $('wErr');
+    if(!openAfter){ $('dMeta').textContent = 'Could not draft again — check the connection and try once more.'; return; }
+    errEl.textContent = 'Could not draft — check the connection and try again.';
+    errEl.style.display = 'block';
+  });
+}
+function showSent(kind, msg){
+  $('sentBig').textContent = kind === 'demo' ? 'Sent (demo)' : 'Sent';
+  $('sentMsg').textContent = kind === 'demo' ? (msg + ' Nothing really left your mailbox — this is a demo build.') : msg;
+  replaceScreen('sent', {r:0, c:0});
 }
 function sendDemo(msg, em, fromDraft){
   if(em) markReplied(em);
   if(fromDraft && draftCtx && draftCtx.emailId){ var e2 = emailById(acct(), draftCtx.emailId); if(e2) markReplied(e2); }
   renderInbox();
-  $('sentMsg').textContent = msg + ' Nothing really left your mailbox — this is a demo build.';
-  replaceScreen('sent', {r:0, c:0});
+  showSent('demo', msg);
 }
 
 /* ================= settings =================
@@ -735,10 +1041,10 @@ function applySettings(){
   var box = $('aiBox'); if(box) box.style.display = store.settings.summary ? '' : 'none';
   var qb = $('btnQuick'); if(qb) qb.style.display = store.settings.quick ? '' : 'none';
 }
-function onSetTextSize(){ var i = TEXT_SIZES.indexOf(store.settings.textSize); store.settings.textSize = TEXT_SIZES[(i + 1) % TEXT_SIZES.length]; save(); applySettings(); }
-function onSetListen(){ store.settings.listen = store.settings.listen === 'fast' ? 'normal' : 'fast'; save(); applySettings(); }
-function onSetSummary(){ store.settings.summary = !store.settings.summary; save(); applySettings(); }
-function onSetQuick(){ store.settings.quick = !store.settings.quick; save(); applySettings(); }
+function onSetTextSize(){ var i = TEXT_SIZES.indexOf(store.settings.textSize); store.settings.textSize = TEXT_SIZES[(i + 1) % TEXT_SIZES.length]; save(); applySettings(); syncSettingsToServer(); }
+function onSetListen(){ store.settings.listen = store.settings.listen === 'fast' ? 'normal' : 'fast'; save(); applySettings(); syncSettingsToServer(); }
+function onSetSummary(){ store.settings.summary = !store.settings.summary; save(); applySettings(); syncSettingsToServer(); }
+function onSetQuick(){ store.settings.quick = !store.settings.quick; save(); applySettings(); syncSettingsToServer(); }
 
 /* ================= wiring buttons ================= */
 $('acctHead').addEventListener('click', function(){ renderSwitcher(); openScreen('switcher', {r:0, c:0}); });
@@ -746,6 +1052,15 @@ $('btnSwBack').addEventListener('click', requestBack);
 $('btnNew').addEventListener('click', function(){ openScreen('compose', {r:0, c:0}); });
 $('btnSettings').addEventListener('click', function(){ openScreen('settings', {r:0, c:0}); });
 $('btnSetBack').addEventListener('click', requestBack);
+$('btnPairStart').addEventListener('click', startPairing);
+$('btnUnpair').addEventListener('click', unpair);
+$('btnPairCancel').addEventListener('click', function(){ stopPairPoll(); requestBack(); });
+$('errBar').addEventListener('click', function(){
+  if(!LIVE.paired) return;
+  var a = acct();
+  if(!LIVE.accounts || !LIVE.accounts.length) loadLiveAccounts();
+  else if(a) loadLiveInbox(a.id);
+});
 $('setTextSize').addEventListener('click', onSetTextSize);
 $('setListen').addEventListener('click', onSetListen);
 $('setSummary').addEventListener('click', onSetSummary);
@@ -758,30 +1073,59 @@ $('btnPager').addEventListener('click', function(){
   state.bodyPage = state.bodyPage < pages.length - 1 ? state.bodyPage + 1 : 0;
   renderRead(); applyHighlight();
 });
-$('btnQuick').addEventListener('click', function(){ renderQuick(); openScreen('quick', {r:0, c:0}); });
+$('btnQuick').addEventListener('click', function(){
+  var em = curEmail(), a = acct();
+  renderQuick(); openScreen('quick', {r:0, c:0});
+  if(a.live && em && !em.quick) fetchQuick(a, em);
+});
 $('btnWrite').addEventListener('click', function(){
   var em = curEmail(); if(!em) return;
-  draftCtx = { mode:'reply', emailId:em.id, toName:em.from.split(' ')[0], toLabel:em.from + ' <' + em.addr + '>', subj:'Re: ' + em.subj, direction:'', variant:0 };
+  var a = acct();
+  draftCtx = { mode:'reply', fromScr:'write', live:!!a.live, accountId:a.id, emailId:em.id, emailMid:em.mid || null,
+               toAddr:em.addr, toName:em.from.split(' ')[0], toLabel:em.from + ' <' + em.addr + '>', subj:'Re: ' + em.subj,
+               direction:'', variant:0, liveSubject:null, liveBody:null };
   $('wCtx').textContent = 'Reply to ' + em.from + ' · Re: ' + em.subj;
+  $('wErr').style.display = 'none';
   $('wDir').value = '';
   openScreen('write', {r:0, c:0});
 });
 $('btnWDraft').addEventListener('click', function(){
   if(!draftCtx) return;
   draftCtx.direction = $('wDir').value; draftCtx.variant = 0;
+  if(draftCtx.live){ $('wErr').style.display = 'none'; callDraftApi(true); return; }
   renderDraft(); openScreen('draft', {r:0, c:0});
 });
 $('btnWBack').addEventListener('click', requestBack);
 $('btnCDraft').addEventListener('click', function(){
   var to = $('cTo').value.trim();
-  draftCtx = { mode:'compose', emailId:null, toName:(to.split('@')[0] || 'there'), toLabel:to || '(no recipient)',
-               subj:$('cSubj').value.trim(), direction:$('cDir').value, variant:0 };
+  var a = acct();
+  draftCtx = { mode:'compose', fromScr:'compose', live:!!a.live, accountId:a.id, emailId:null, emailMid:null,
+               toAddr:to, toName:(to.split('@')[0] || 'there'), toLabel:to || '(no recipient)',
+               subj:$('cSubj').value.trim(), direction:$('cDir').value, variant:0, liveSubject:null, liveBody:null };
+  if(draftCtx.live){ $('cErr').style.display = 'none'; callDraftApi(true); return; }
   renderDraft(); openScreen('draft', {r:0, c:0});
 });
 $('btnCBack').addEventListener('click', requestBack);
 $('btnQuickBack').addEventListener('click', requestBack);
-$('btnDRegen').addEventListener('click', function(){ if(draftCtx){ draftCtx.variant = (draftCtx.variant + 1) % 3; renderDraft(); } });
-$('btnDSend').addEventListener('click', function(){ sendDemo('Your AI draft was sent (demo).', null, true); });
+$('btnDRegen').addEventListener('click', function(){
+  if(!draftCtx) return;
+  if(draftCtx.live){ callDraftApi(false); return; }
+  draftCtx.variant = (draftCtx.variant + 1) % 3; renderDraft();
+});
+$('btnDSend').addEventListener('click', function(){
+  if(draftCtx && draftCtx.live){
+    var payload = { accountId:draftCtx.accountId, to:draftCtx.toAddr,
+                    subject:draftCtx.liveSubject || draftCtx.subj || '', body:$('dBody').textContent };
+    if(draftCtx.emailMid) payload.replyToMessageId = draftCtx.emailMid;
+    api('/v1/mail/send', { method:'POST', body:payload }).then(function(res){
+      if(draftCtx.emailId){ var e2 = emailById(acct(), draftCtx.emailId); if(e2) markReplied(e2); }
+      renderInbox();
+      showSent(res && res.demo ? 'demo' : 'live', 'Your AI draft was sent.');
+    }).catch(function(){ $('dMeta').textContent = 'Sending failed — check the connection and try Send again.'; });
+    return;
+  }
+  sendDemo('Your AI draft was sent (demo).', null, true);
+});
 $('btnDBack').addEventListener('click', requestBack);
 $('btnSentInbox').addEventListener('click', closeAllToRoot);
 
@@ -850,10 +1194,18 @@ document.addEventListener('keydown', function(e){
 });
 
 /* ================= init ================= */
-$('acctStatus').textContent = ACCOUNTS.map(function(a){ return a.provider; }).join(' · ') + ' — add or remove accounts in the phone setup';
+if(LIVE.paired && LIVE.cache.accounts.length){
+  LIVE.accounts = LIVE.cache.accounts.map(makeLiveAccount);
+  var okAcct = false;
+  LIVE.accounts.forEach(function(a){ if(a.id === store.acct) okAcct = true; });
+  if(!okAcct && LIVE.accounts.length) store.acct = LIVE.accounts[0].id;
+}
+applyModeChip();
+renderConn();
 applySettings();
 renderInbox();
 showScreen('inbox');
+if(LIVE.paired) enterLiveMode();
 </script>
 </body>
 </html>
